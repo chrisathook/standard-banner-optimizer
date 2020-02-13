@@ -16,6 +16,9 @@ import log from 'electron-log';
 import MenuBuilder from './menu';
 
 
+global.userSharedObject ={isWin:true};
+
+
 export default class AppUpdater {
   constructor() {
     log.transports.file.level = 'info';
