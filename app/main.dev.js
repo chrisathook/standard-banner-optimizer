@@ -116,4 +116,4 @@ app.on('activate', () => {
 ipcMain.on('asynchronous-message', (event, arg) => {
   console.log('!!MAIN ',arg); // prints "ping"
   event.reply('asynchronous-reply', 'pong')
-})
+});
