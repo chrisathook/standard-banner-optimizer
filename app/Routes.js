@@ -1,15 +1,23 @@
 import React from 'react';
-import { Switch, Route } from 'react-router';
-import routes from './constants/routes.json';
-import App from './containers/App';
-import HomePage from './containers/HomePage';
-import CounterPage from './containers/CounterPage';
+import { Router, Route, Switch } from 'react-router';
+import history from './utils/history';
+import Header from './components/views/header';
+import Home from './components/views/home';
+export default () => {
+  return (
+    <div>
+      <Router history={history}>
+        <Header/>
+        <br/>
+        <br/>
+        <div>
+          <Switch>
+            <Route exact path='/' component={Home}/>
+          </Switch>
+        </div>
+      </Router>
 
-export default () => (
-  <App>
-    <Switch>
-      <Route path={routes.COUNTER} component={CounterPage} />
-      <Route path={routes.HOME} component={HomePage} />
-    </Switch>
-  </App>
-);
+    </div>
+  );
+}
+
