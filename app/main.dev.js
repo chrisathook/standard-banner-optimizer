@@ -10,10 +10,11 @@
  *
  * @flow
  */
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow,ipcMain } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import MenuBuilder from './menu';
+
 
 export default class AppUpdater {
   constructor() {
@@ -111,3 +112,8 @@ app.on('activate', () => {
   // dock icon is clicked and there are no other windows open.
   if (mainWindow === null) createWindow();
 });
+
+ipcMain.on('asynchronous-message', (event, arg) => {
+  console.log('!!MAIN ',arg); // prints "ping"
+  event.reply('asynchronous-reply', 'pong')
+})
