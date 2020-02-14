@@ -1,35 +1,54 @@
+// @flow
 import React, { useState, useContext, useEffect } from 'react';
 import { Context } from '../../store/Store';
 import * as ACTIONS from '../../store/actions/actions';
-import { remote } from 'electron';
+import { remote, ipcRenderer } from 'electron';
 import { isAbsoluteLinuxPath, isAbsoluteWindowsPath } from 'path-validation';
 import { Form, Icon, Input, Button, Checkbox } from 'antd';
+import ipcEvents from '../../constants/ipc_events';
 const { TextArea } = Input;
 const { dialog } = remote;
 //
 import styles from './home.module.scss';
 const Home = () => {
+  //context state
   const [formState, formDispatch] = useContext(Context);
-  const isWin = remote.getGlobal('userSharedObject').isWin;
+  //local state
   const [statusText, setStatusText] = useState('');
   const validatePath = (winValidator, osxValidator, path) => {
     return !!(winValidator(path) || osxValidator(path));
   };
+  // effects
+  useEffect(() => {
+    let listener = (event, arg) => {
+      setStatusText('minification complete');
+    };
+    ipcRenderer.on(ipcEvents.END_MINIFICATION, listener);
+    return () => {
+      ipcRenderer.removeListener(ipcEvents.END_MINIFICATION, listener);
+    };
+  }, []);
+  // handlers
   const handleSubmit = event => {
     event.preventDefault();
-    if (!validatePath(isAbsoluteWindowsPath, isAbsoluteLinuxPath, formState.sourcePathText)) {
+    const { sourcePathText, outputPathText } = formState;
+    if (!validatePath(isAbsoluteWindowsPath, isAbsoluteLinuxPath, sourcePathText)) {
       setStatusText('Your Source Path is Not Value');
       return;
     }
-    if (!validatePath(isAbsoluteWindowsPath, isAbsoluteLinuxPath, formState.outputPathText)) {
+    if (!validatePath(isAbsoluteWindowsPath, isAbsoluteLinuxPath, outputPathText)) {
       setStatusText('Your Output Path is Not Value');
       return;
     }
-    if (formState.sourcePathText === formState.outputPathText) {
+    if (sourcePathText === outputPathText) {
       setStatusText('Your Source and Output paths can\'t be equal');
       return;
     }
     setStatusText('Processing');
+    ipcRenderer.send(ipcEvents.START_MINIFICATION, {
+      sourcePathText,
+      outputPathText
+    });
   };
   const handleInputSource = (event) => {
     formDispatch(ACTIONS.source_input_change(event.target.value));

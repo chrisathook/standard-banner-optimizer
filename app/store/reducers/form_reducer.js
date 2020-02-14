@@ -1,3 +1,4 @@
+// @flow
 import * as ACTION_TYPES from '../actions/action_types';
 export const initialState = {
     sourcePathText:'',

@@ -1,5 +1,4 @@
 /* eslint global-require: off */
-
 /**
  * This module executes inside of electron's main process. You can start
  * electron renderer process from here and communicate with the other processes
@@ -10,15 +9,13 @@
  *
  * @flow
  */
-import { app, BrowserWindow,ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import MenuBuilder from './menu';
-
-
-global.userSharedObject ={isWin:true};
-
-
+import ipcEvents from './constants/ipc_events';
+import minifier from './minification_main/minifyBanner';
+global.userSharedObject = { isWin: true };
 export default class AppUpdater {
   constructor() {
     log.transports.file.level = 'info';
@@ -26,31 +23,25 @@ export default class AppUpdater {
     autoUpdater.checkForUpdatesAndNotify();
   }
 }
-
 let mainWindow = null;
-
 if (process.env.NODE_ENV === 'production') {
   const sourceMapSupport = require('source-map-support');
   sourceMapSupport.install();
 }
-
 if (
   process.env.NODE_ENV === 'development' ||
   process.env.DEBUG_PROD === 'true'
 ) {
   require('electron-debug')();
 }
-
 const installExtensions = async () => {
   const installer = require('electron-devtools-installer');
   const forceDownload = !!process.env.UPGRADE_EXTENSIONS;
   const extensions = ['REACT_DEVELOPER_TOOLS', 'REDUX_DEVTOOLS'];
-
   return Promise.all(
     extensions.map(name => installer.default(installer[name], forceDownload))
   ).catch(console.log);
 };
-
 const createWindow = async () => {
   if (
     process.env.NODE_ENV === 'development' ||
@@ -58,7 +49,6 @@ const createWindow = async () => {
   ) {
     await installExtensions();
   }
-
   mainWindow = new BrowserWindow({
     show: false,
     width: 1024,
@@ -67,9 +57,7 @@ const createWindow = async () => {
       nodeIntegration: true
     }
   });
-
   mainWindow.loadURL(`file://${__dirname}/app.html`);
-
   // @TODO: Use 'ready-to-show' event
   //        https://github.com/electron/electron/blob/master/docs/api/browser-window.md#using-ready-to-show-event
   mainWindow.webContents.on('did-finish-load', () => {
@@ -83,23 +71,18 @@ const createWindow = async () => {
       mainWindow.focus();
     }
   });
-
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
-
   const menuBuilder = new MenuBuilder(mainWindow);
   menuBuilder.buildMenu();
-
   // Remove this if your app does not use auto updates
   // eslint-disable-next-line
   new AppUpdater();
 };
-
 /**
  * Add event listeners...
  */
-
 app.on('window-all-closed', () => {
   // Respect the OSX convention of having the application in memory even
   // after all windows have been closed
@@ -107,16 +90,16 @@ app.on('window-all-closed', () => {
     app.quit();
   }
 });
-
 app.on('ready', createWindow);
-
 app.on('activate', () => {
   // On macOS it's common to re-create a window in the app when the
   // dock icon is clicked and there are no other windows open.
   if (mainWindow === null) createWindow();
 });
-
-ipcMain.on('asynchronous-message', (event, arg) => {
-  console.log('!!MAIN ',arg); // prints "ping"
-  event.reply('asynchronous-reply', 'pong')
+ipcMain.on(ipcEvents.START_MINIFICATION, (event, arg) => {
+  console.log('!!MAIN ', arg); // prints "ping"
+  minifier(event, arg)
+    .then((result) => {
+      event.reply(ipcEvents.END_MINIFICATION, 'minification done');
+    });
 });
