@@ -7,7 +7,7 @@ export default () => {
   return (
     <div>
       <Router history={history}>
-        <Header/>
+        <Header history={history}/>
         <br/>
         <br/>
         <div>
