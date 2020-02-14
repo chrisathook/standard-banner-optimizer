@@ -1,9 +1,9 @@
 // @flow
 import * as ACTION_TYPES from '../actions/action_types';
 export const initialState = {
-    sourcePathText:'',
+    sourcePathText:'D:\\ScratchDesktop\\minifier-test\\Source',
   sourcePathSubmit:'',
-  outputPathText:'',
+  outputPathText:'D:\\ScratchDesktop\\minifier-test\\Output',
   outputPathSubmit:'',
 };
 
