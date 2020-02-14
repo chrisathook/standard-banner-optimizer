@@ -1,13 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import styles from './home.module.scss';
+import React, { useState,useContext, useEffect } from 'react';
+import {Context} from "../../store/Store";
+import * as ACTIONS from "../../store/actions/actions";
 import { remote } from 'electron';
 import { isAbsoluteLinuxPath, isAbsoluteWindowsPath } from 'path-validation';
 import { Form, Icon, Input, Button, Checkbox } from 'antd';
 const { TextArea } = Input;
+//
+import styles from './home.module.scss';
 const Home = () => {
+
+  const [formState, formDispatch] = useContext(Context);
+
   const isWin = remote.getGlobal('userSharedObject').isWin;
-  const [sourcePath, setSourcePath] = useState('');
-  const [outputPath, setOutputPath] = useState('');
   const [statusText, setStatusText] = useState('');
   const handleSubmit = event => {
     event.preventDefault();
@@ -15,16 +19,16 @@ const Home = () => {
       return !!(winValidator(path) || osxValidator(path));
 
     };
-    if (!validatePath(isAbsoluteWindowsPath, isAbsoluteLinuxPath,sourcePath)) {
+    if (!validatePath(isAbsoluteWindowsPath, isAbsoluteLinuxPath,formState.sourcePathText)) {
       setStatusText ('Your Source Path is Not Value');
       return;
     }
-    if (!validatePath(isAbsoluteWindowsPath, isAbsoluteLinuxPath,outputPath)) {
+    if (!validatePath(isAbsoluteWindowsPath, isAbsoluteLinuxPath,formState.outputPathText)) {
       setStatusText ('Your Output Path is Not Value');
       return;
     }
 
-    if (sourcePath === outputPath) {
+    if (formState.sourcePathText === formState.outputPathText) {
       setStatusText ("Your Source and Output paths can't be equal");
       return;
     }
@@ -32,11 +36,13 @@ const Home = () => {
     setStatusText ('Processing');
   };
   const handleInputSource = (event) => {
-    setSourcePath(event.target.value);
+
+    formDispatch (ACTIONS.source_input_change(event.target.value));
+
     event.preventDefault();
   };
   const handleInputOutput = (event) => {
-    setOutputPath(event.target.value);
+    formDispatch (ACTIONS.output_input_change(event.target.value));
     event.preventDefault();
   };
   return (
@@ -47,6 +53,7 @@ const Home = () => {
         <br/>
         <Form.Item>
           <input
+            id="source_path_field"
             className={styles.minifier_form_input}
             type="text"
             onChange={handleInputSource}
@@ -59,6 +66,7 @@ const Home = () => {
         <br/>
         <Form.Item>
           <input
+            id="output_path_field"
             className={styles.minifier_form_input}
             type="text"
             onChange={handleInputOutput}

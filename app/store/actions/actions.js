@@ -1,38 +1,26 @@
-import * as ACTION_TYPES from './action_types'
-
-export const SUCCESS = {
-    type: ACTION_TYPES.SUCCESS
+import * as ACTION_TYPES from './action_types';
+export const source_input_change = (text) => {
+  return {
+    type: ACTION_TYPES.SOURCE_PATH_INPUT_CHANGE,
+    payload: text
+  };
+};
+export const source_input_submit = (text) => {
+  return {
+    type: ACTION_TYPES.SOURCE_PATH_INPUT_SUBMIT,
+    payload: text
+  };
 };
 
-export const FAILURE = {
-    type: ACTION_TYPES.FAILURE
+export const output_input_change = (text) => {
+  return {
+    type: ACTION_TYPES.OUTPUT_PATH_INPUT_CHANGE,
+    payload: text
+  };
 };
-
-
-export const success = () => {
-    return {
-        type: ACTION_TYPES.SUCCESS
-    }
-};
-
-export const failure = () => {
-    return {
-        type: ACTION_TYPES.FAILURE
-    }
-};
-
-
-
-export const user_input_change = (text) => {
-    return {
-        type: ACTION_TYPES.USER_INPUT_CHANGE,
-        payload: text
-    }
-};
-
-export const user_input_submit = (text) => {
-    return {
-        type: ACTION_TYPES.USER_INPUT_SUBMIT,
-        payload: text
-    }
+export const output_input_submit = (text) => {
+  return {
+    type: ACTION_TYPES.OUTPUT_PATH_INPUT_SUBMIT,
+    payload: text
+  };
 };

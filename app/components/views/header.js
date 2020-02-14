@@ -1,9 +1,8 @@
 import React, { useContext,useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import Context from '../../utils/context';
 
 const Header = (props) => {
-    const context = useContext(Context);
+
 
     useEffect(()=>{
       props.history.push ('/');
