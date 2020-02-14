@@ -13,7 +13,7 @@ export const FormReducer = (state, action) =>{
       case ACTION_TYPES.SOURCE_PATH_INPUT_CHANGE:
           return {
               ...state,
-            sourcePathText: state.sourcePathText = action.payload
+            sourcePathText: action.payload
           };
       case ACTION_TYPES.SOURCE_PATH_INPUT_SUBMIT:
           return {
