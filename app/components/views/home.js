@@ -4,9 +4,10 @@ import { Context } from '../../store/Store';
 import * as ACTIONS from '../../store/actions/actions';
 import { remote, ipcRenderer } from 'electron';
 import { isAbsoluteLinuxPath, isAbsoluteWindowsPath } from 'path-validation';
-import { Form, Icon, Input, Button, Checkbox } from 'antd';
+import { Form, Icon, Input, Button, Checkbox, Select } from 'antd';
 import ipcEvents from '../../constants/ipc_events';
 const { TextArea } = Input;
+const { Option } = Select;
 const { dialog } = remote;
 //
 import styles from './home.module.scss';
@@ -31,7 +32,7 @@ const Home = () => {
   // handlers
   const handleSubmit = event => {
     event.preventDefault();
-    const { sourcePathText, outputPathText } = formState;
+    const { sourcePathText, outputPathText,htmlMinOption } = formState;
     if (!validatePath(isAbsoluteWindowsPath, isAbsoluteLinuxPath, sourcePathText)) {
       setStatusText('Your Source Path is Not Value');
       return;
@@ -47,7 +48,8 @@ const Home = () => {
     setStatusText('Processing');
     ipcRenderer.send(ipcEvents.START_MINIFICATION, {
       sourcePathText,
-      outputPathText
+      outputPathText,
+      htmlMinOption
     });
   };
   const handleInputSource = (event) => {
@@ -68,6 +70,11 @@ const Home = () => {
       formDispatch(action(path[0]));
     }
   };
+
+  const handleOptionChange = (value, action)=>{
+    formDispatch(action(value));
+  };
+
   return (
     <div>
       <h1>Standard Banner Minifier</h1>
@@ -118,7 +125,16 @@ const Home = () => {
             value={statusText}
           />
         </Form.Item>
-
+        <Form.Item>
+          Minify HTML
+          <Select
+            defaultValue={formState.htmlMinOption}
+            style={{ width: 120 }}
+            onChange={(e)=>{handleOptionChange (e, ACTIONS.html_min_submit)}}>
+            <Option value="true">YES</Option>
+            <Option value="false">NO</Option>
+          </Select>
+        </Form.Item>
 
       </Form>
     </div>

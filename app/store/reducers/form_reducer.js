@@ -5,6 +5,7 @@ export const initialState = {
   sourcePathSubmit:'',
   outputPathText:'D:\\ScratchDesktop\\minifier-test\\Output',
   outputPathSubmit:'',
+  htmlMinOption:'true'
 };
 
 
@@ -31,6 +32,12 @@ export const FormReducer = (state, action) =>{
       return {
         ...state,
         outputPathSubmit:action.payload
+
+      };
+    case ACTION_TYPES.HTML_MIN_CHANGE:
+      return {
+        ...state,
+        htmlMinOption:action.payload
 
       };
       default:

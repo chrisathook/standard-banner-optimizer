@@ -21,31 +21,33 @@ function copySource(sourcePath, destPath) {
 function minifyHTML(rootPath) {
   return new Promise(((resolve, reject) => {
     let run = async (file) => {
-      console.log ("!!!",file);
+      console.log('!!!', file);
       let data = await fs.readFile(file, 'utf8');
-      data = HTMLMinifier.minify(data,{
-        collapseWhitespace:true,
-        conservativeCollapse:true,
-        html5:true,
-        minifyCSS:true,
-        minifyJS:true,
-        removeComments:true
+      data = HTMLMinifier.minify(data, {
+        collapseWhitespace: true,
+        conservativeCollapse: true,
+        html5: true,
+        minifyCSS: true,
+        minifyJS: true,
+        removeComments: true
       });
-      await fs.writeFile (file,data);
+      await fs.writeFile(file, data);
     };
     glob(path.join(rootPath, '**/*.html'))
       .then(files => {
-
         files.forEach(run);
       })
-      .then (resolve)
+      .then(resolve);
   }));
+}
+function nullPromise(...args) {
+  return Promise.resolve(...args);
 }
 export default (event, config) => {
   return new Promise(((resolve, reject) => {
-    const { sourcePathText, outputPathText } = config;
+    const { sourcePathText, outputPathText, htmlMinOption } = config;
     copySource(sourcePathText, outputPathText)
-      .then (minifyHTML)
+      .then(htmlMinOption ==='true' ? minifyHTML : nullPromise)
       .then(resolve);
   }));
 };

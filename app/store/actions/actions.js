@@ -24,3 +24,9 @@ export const output_input_submit = (text) => {
     payload: text
   };
 };
+export const html_min_submit = (text) => {
+  return {
+    type: ACTION_TYPES.HTML_MIN_CHANGE,
+    payload: text
+  };
+};
