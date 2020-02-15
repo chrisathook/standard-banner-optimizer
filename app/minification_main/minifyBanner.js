@@ -10,7 +10,7 @@ function copySource(sourcePath, destPath) {
     let finalPath = path.join(destPath, timestamp);
     try {
       fs.copySync(sourcePath, finalPath);
-      console.log('success!');
+      //console.log('success!');
     } catch (err) {
       console.error(err);
       reject();
@@ -21,7 +21,7 @@ function copySource(sourcePath, destPath) {
 function minifyHTML(rootPath) {
   return new Promise(((resolve, reject) => {
     let run = async (file) => {
-      console.log('!!!', file);
+      //console.log('!!!', file);
       let data = await fs.readFile(file, 'utf8');
       data = HTMLMinifier.minify(data, {
         collapseWhitespace: true,
