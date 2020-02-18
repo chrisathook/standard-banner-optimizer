@@ -32,7 +32,7 @@ const Home = () => {
   // handlers
   const handleSubmit = event => {
     event.preventDefault();
-    const { sourcePathText, outputPathText,htmlMinOption } = formState;
+    const { sourcePathText, outputPathText } = formState;
     if (!validatePath(isAbsoluteWindowsPath, isAbsoluteLinuxPath, sourcePathText)) {
       setStatusText('Your Source Path is Not Value');
       return;
@@ -46,11 +46,7 @@ const Home = () => {
       return;
     }
     setStatusText('Processing');
-    ipcRenderer.send(ipcEvents.START_MINIFICATION, {
-      sourcePathText,
-      outputPathText,
-      htmlMinOption
-    });
+    ipcRenderer.send(ipcEvents.START_MINIFICATION, formState);
   };
   const handleInputSource = (event) => {
     formDispatch(ACTIONS.source_input_change(event.target.value));
@@ -135,7 +131,36 @@ const Home = () => {
             <Option value="false">NO</Option>
           </Select>
         </Form.Item>
-
+        <Form.Item>
+          Minify JS
+          <Select
+            defaultValue={formState.jsMinOption}
+            style={{ width: 120 }}
+            onChange={(e)=>{handleOptionChange (e, ACTIONS.js_min_submit)}}>
+            <Option value="true">YES</Option>
+            <Option value="false">NO</Option>
+          </Select>
+        </Form.Item>
+        <Form.Item>
+          Minify CSS
+          <Select
+            defaultValue={formState.cssMinOption}
+            style={{ width: 120 }}
+            onChange={(e)=>{handleOptionChange (e, ACTIONS.css_min_submit)}}>
+            <Option value="true">YES</Option>
+            <Option value="false">NO</Option>
+          </Select>
+        </Form.Item>
+        <Form.Item>
+          Minify CSS
+          <Select
+            defaultValue={formState.svgMinOption}
+            style={{ width: 120 }}
+            onChange={(e)=>{handleOptionChange (e, ACTIONS.svg_min_submit)}}>
+            <Option value="true">YES</Option>
+            <Option value="false">NO</Option>
+          </Select>
+        </Form.Item>
       </Form>
     </div>
   );

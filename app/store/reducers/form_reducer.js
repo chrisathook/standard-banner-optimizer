@@ -5,7 +5,10 @@ export const initialState = {
   sourcePathSubmit: '',
   outputPathText: 'D:\\ScratchDesktop\\minifier-test\\Output',
   outputPathSubmit: '',
-  htmlMinOption: 'true'
+  htmlMinOption: 'true',
+  jsMinOption: 'true',
+  cssMinOption: 'true',
+  svgMinOption: 'true'
 };
 export const FormReducer = (state, action) => {
   switch (action.type) {

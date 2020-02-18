@@ -97,7 +97,7 @@ app.on('activate', () => {
   if (mainWindow === null) createWindow();
 });
 ipcMain.on(ipcEvents.START_MINIFICATION, (event, arg) => {
-  console.log('!!MAIN ', arg); // prints "ping"
+  //console.log('!!MAIN ', arg); // prints "ping"
   minifier(event, arg)
     .then((result) => {
       event.reply(ipcEvents.END_MINIFICATION, 'minification done');

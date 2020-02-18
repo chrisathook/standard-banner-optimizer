@@ -30,3 +30,21 @@ export const html_min_submit = (text) => {
     payload: text
   };
 };
+export const js_min_submit = (text) => {
+  return {
+    type: ACTION_TYPES.JS_MIN_CHANGE,
+    payload: text
+  };
+};
+export const css_min_submit = (text) => {
+  return {
+    type: ACTION_TYPES.CSS_MIN_CHANGE,
+    payload: text
+  };
+};
+export const svg_min_submit = (text) => {
+  return {
+    type: ACTION_TYPES.SVG_MIN_CHANGE,
+    payload: text
+  };
+};

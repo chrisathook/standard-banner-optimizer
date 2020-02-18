@@ -4,6 +4,7 @@ import moment from 'moment';
 import path from 'path';
 import glob from 'glob-promise';
 import * as HTMLMinifier from 'html-minifier';
+import * as JSMinifier from 'uglify-js';
 function copySource(sourcePath, destPath) {
   return new Promise(((resolve, reject) => {
     let timestamp = moment().format('YYYYMMDD_HHmmSS');
@@ -37,17 +38,42 @@ function minifyHTML(rootPath) {
       .then(files => {
         files.forEach(run);
       })
-      .then(resolve);
+      .then(()=> resolve(rootPath));
   }));
 }
+
+function minifyJS(rootPath) {
+
+  console.log('!!', rootPath);
+  return new Promise(((resolve, reject) => {
+    let run = async (file) => {
+      console.log('!!!', file);
+      let data = await fs.readFile(file, 'utf8');
+      data = JSMinifier.minify(data, {
+    compress:{
+      drop_console:true,
+      keep_fnames:true
+    }
+      }).code;
+      await fs.writeFile(file, data);
+    };
+    glob(path.join(rootPath, '**/*.js'))
+      .then(files => {
+        files.forEach(run);
+      })
+      .then(()=> resolve(rootPath));
+  }));
+}
+
 function nullPromise(...args) {
   return Promise.resolve(...args);
 }
 export default (event, config) => {
   return new Promise(((resolve, reject) => {
-    const { sourcePathText, outputPathText, htmlMinOption } = config;
+    const { sourcePathText, outputPathText, htmlMinOption,jsMinOption } = config;
     copySource(sourcePathText, outputPathText)
       .then(htmlMinOption ==='true' ? minifyHTML : nullPromise)
+      .then(jsMinOption ==='true' ? minifyJS : nullPromise)
       .then(resolve);
   }));
 };
