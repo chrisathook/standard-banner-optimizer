@@ -37,6 +37,16 @@ export const FormReducer = (state, action) => {
         ...state,
         htmlMinOption: action.payload
       };
+    case ACTION_TYPES.JS_MIN_CHANGE:
+      return {
+        ...state,
+        jsMinOption: action.payload
+      };
+    case ACTION_TYPES.CSS_MIN_CHANGE:
+      return {
+        ...state,
+        cssMinOption: action.payload
+      };
     default:
       throw new Error();
   }

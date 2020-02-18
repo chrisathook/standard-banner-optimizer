@@ -1,5 +1,5 @@
 // @flow
-import React, { useState, useContext, useEffect } from 'react';
+import React, { useState, useContext, useEffect,Fragment } from 'react';
 import { Context } from '../../store/Store';
 import * as ACTIONS from '../../store/actions/actions';
 import { remote, ipcRenderer } from 'electron';
@@ -71,6 +71,32 @@ const Home = () => {
     formDispatch(action(value));
   };
 
+
+  // HOCs
+  /**
+   *
+   * @param props
+   * @returns {*}
+   */
+  const FormSelector = (props)=>{
+
+    return (
+      <Fragment>
+        <Form.Item>
+          {props.title} &nbsp;
+          <Select
+            defaultValue={props.display_value}
+            style={{ width: 120 }}
+            onChange={(e)=>{handleOptionChange (e, props.submit_function)}}>
+            <Option value="true">YES</Option>
+            <Option value="false">NO</Option>
+          </Select>
+        </Form.Item>
+      </Fragment>
+    )
+  };
+
+
   return (
     <div>
       <h1>Standard Banner Minifier</h1>
@@ -111,47 +137,26 @@ const Home = () => {
         </Form.Item>
         <br/>
 
-        <Form.Item>
-          Minify HTML
-          <Select
-            defaultValue={formState.htmlMinOption}
-            style={{ width: 120 }}
-            onChange={(e)=>{handleOptionChange (e, ACTIONS.html_min_submit)}}>
-            <Option value="true">YES</Option>
-            <Option value="false">NO</Option>
-          </Select>
-        </Form.Item>
-        <Form.Item>
-          Minify JS
-          <Select
-            defaultValue={formState.jsMinOption}
-            style={{ width: 120 }}
-            onChange={(e)=>{handleOptionChange (e, ACTIONS.js_min_submit)}}>
-            <Option value="true">YES</Option>
-            <Option value="false">NO</Option>
-          </Select>
-        </Form.Item>
-        <Form.Item>
-          Minify CSS
-          <Select
-            defaultValue={formState.cssMinOption}
-            style={{ width: 120 }}
-            onChange={(e)=>{handleOptionChange (e, ACTIONS.css_min_submit)}}>
-            <Option value="true">YES</Option>
-            <Option value="false">NO</Option>
-          </Select>
-        </Form.Item>
-        <Form.Item>
-          Minify CSS
-          <Select
-            defaultValue={formState.svgMinOption}
-            style={{ width: 120 }}
-            onChange={(e)=>{handleOptionChange (e, ACTIONS.svg_min_submit)}}>
-            <Option value="true">YES</Option>
-            <Option value="false">NO</Option>
-          </Select>
-        </Form.Item>
-        <br/>
+
+
+        <FormSelector
+          title="Minify HTML"
+          display_value={formState.htmlMinOption}
+          submit_function={ACTIONS.html_min_submit}
+        />
+
+        <FormSelector
+          title="Minify JS"
+          display_value={formState.jsMinOption}
+          submit_function={ACTIONS.js_min_submit}
+        />
+
+        <FormSelector
+          title="Minify CSS"
+          display_value={formState.cssMinOption}
+          submit_function={ACTIONS.css_min_submit}
+        />
+     
         <br/>
         <Form.Item>
           <input type="submit" value="Submit"/>
