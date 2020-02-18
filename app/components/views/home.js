@@ -110,17 +110,7 @@ const Home = () => {
           />
         </Form.Item>
         <br/>
-        <Form.Item>
-          <input type="submit" value="Submit"/>
-        </Form.Item>
-        <Form.Item>
-          <TextArea
-            rows={4}
-            readOnly
-            placeholder="Results Updated Here"
-            value={statusText}
-          />
-        </Form.Item>
+
         <Form.Item>
           Minify HTML
           <Select
@@ -160,6 +150,19 @@ const Home = () => {
             <Option value="true">YES</Option>
             <Option value="false">NO</Option>
           </Select>
+        </Form.Item>
+        <br/>
+        <br/>
+        <Form.Item>
+          <input type="submit" value="Submit"/>
+        </Form.Item>
+        <Form.Item>
+          <TextArea
+            rows={4}
+            readOnly
+            placeholder="Results Updated Here"
+            value={statusText}
+          />
         </Form.Item>
       </Form>
     </div>
