@@ -4,7 +4,7 @@ import { Context } from '../../store/Store';
 import * as ACTIONS from '../../store/actions/actions';
 import { remote, ipcRenderer } from 'electron';
 import { isAbsoluteLinuxPath, isAbsoluteWindowsPath } from 'path-validation';
-import { Form, Icon, Input, Button, Checkbox, Select } from 'antd';
+import { Form, Icon, Input, Button, Checkbox, Select, Row, Col } from 'antd';
 import ipcEvents from '../../constants/ipc_events';
 const { TextArea } = Input;
 const { Option } = Select;
@@ -80,6 +80,7 @@ const Home = () => {
       <Fragment>
         <Form.Item>
           {props.title} &nbsp;
+          <br/>
           <Select
             defaultValue={props.display_value}
             style={{ width: 120 }}
@@ -102,63 +103,73 @@ const Home = () => {
           spawnDialog(e, ACTIONS.source_input_change);
         }}
         type="primary">click here</Button>
-        <br/>
-        <Form.Item>
-          <input
-            id="source_path_field"
-            className={styles.minifier_form_input}
-            type="text"
-            value={formState.sourcePathText}
-            onChange={handleInputSource}
-            placeholder="Paste Path to Source Folder"
-          />
-        </Form.Item>
-        <br/>
-        <br/>
-        Paste Directory Path of Output Files or <Button
-        onClick={(e) => {
-          spawnDialog(e, ACTIONS.output_input_change);
-        }}
-        type="primary">click here</Button>
-        <br/>
-        <Form.Item>
-          <input
-            id="output_path_field"
-            className={styles.minifier_form_input}
-            type="text"
-            value={formState.outputPathText}
-            onChange={handleInputOutput}
-            placeholder="Paste Path to Output Folder"
-          />
-        </Form.Item>
-        <br/>
-        <FormSelector
-          title="Minify HTML"
-          display_value={formState.htmlMinOption}
-          submit_function={ACTIONS.html_min_submit}
-        />
-        <FormSelector
-          title="Minify JS"
-          display_value={formState.jsMinOption}
-          submit_function={ACTIONS.js_min_submit}
-        />
-        <FormSelector
-          title="Minify CSS"
-          display_value={formState.cssMinOption}
-          submit_function={ACTIONS.css_min_submit}
-        />
-        <br/>
+
+        <div>
+          <Form.Item>
+            <input
+              id="source_path_field"
+              className={styles.minifier_form_input}
+              type="text"
+              value={formState.sourcePathText}
+              onChange={handleInputSource}
+              placeholder="Paste Path to Source Folder"
+            />
+          </Form.Item>
+        </div>
+        <div>
+          Paste Directory Path of Output Files or <Button
+          onClick={(e) => {
+            spawnDialog(e, ACTIONS.output_input_change);
+          }}
+          type="primary">click here</Button>
+          <br/>
+          <Form.Item>
+            <input
+              id="output_path_field"
+              className={styles.minifier_form_input}
+              type="text"
+              value={formState.outputPathText}
+              onChange={handleInputOutput}
+              placeholder="Paste Path to Output Folder"
+            />
+          </Form.Item>
+        </div>
+
+        <div>
+          <Row className={styles.min_col}>
+            <Col span={8}> <FormSelector
+              title="Minify HTML"
+              display_value={formState.htmlMinOption}
+              submit_function={ACTIONS.html_min_submit}
+            /></Col>
+            <Col span={8}> <FormSelector
+              title="Minify JS"
+              display_value={formState.jsMinOption}
+              submit_function={ACTIONS.js_min_submit}
+            /></Col>
+            <Col span={8}><FormSelector
+              title="Minify CSS"
+              display_value={formState.cssMinOption}
+              submit_function={ACTIONS.css_min_submit}
+            /></Col>
+          </Row>
+
+        </div>
+
+        <div>
         <Form.Item>
           <input type="submit" value="Submit"/>
         </Form.Item>
         <Form.Item>
           <TextArea
+            className={styles.min_col}
             rows={4}
             readOnly
             placeholder="Results Updated Here"
             value={statusText}
           />
         </Form.Item>
+        </div>
       </Form>
     </div>
   );
