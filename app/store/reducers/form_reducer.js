@@ -8,7 +8,9 @@ export const initialState = {
   htmlMinOption: 'true',
   jsMinOption: 'true',
   cssMinOption: 'true',
-  svgMinOption: 'true'
+  svgMinOption: 'true',
+  optimizeImages: 'true',
+  createZips: 'true'
 };
 export const FormReducer = (state, action) => {
   switch (action.type) {
@@ -46,6 +48,16 @@ export const FormReducer = (state, action) => {
       return {
         ...state,
         cssMinOption: action.payload
+      };
+    case ACTION_TYPES.OPTIMIZE_IMAGES_SUBMIT:
+      return {
+        ...state,
+        optimizeImages: action.payload
+      };
+    case ACTION_TYPES.MAKE_ZIPS_SUBMIT:
+      return {
+        ...state,
+        createZips: action.payload
       };
     default:
       throw new Error();

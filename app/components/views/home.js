@@ -153,6 +153,19 @@ const Home = () => {
               submit_function={ACTIONS.css_min_submit}
             /></Col>
           </Row>
+          <Row className={styles.min_col}>
+            <Col span={8}><FormSelector
+              title="Optimize Images"
+              display_value={formState.optimizeImages}
+              submit_function={ACTIONS.optimize_images_submit}
+            /></Col>
+            <Col span={8}><FormSelector
+              title="Make Zips"
+              display_value={formState.createZips}
+              submit_function={ACTIONS.zips_submit}
+            /></Col>
+            <Col span={8}></Col>
+          </Row>
 
         </div>
 

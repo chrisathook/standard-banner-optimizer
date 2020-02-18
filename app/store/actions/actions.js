@@ -48,3 +48,15 @@ export const svg_min_submit = (text) => {
     payload: text
   };
 };
+export const zips_submit = (text) => {
+  return {
+    type: ACTION_TYPES.MAKE_ZIPS_SUBMIT,
+    payload: text
+  };
+};
+export const optimize_images_submit = (text) => {
+  return {
+    type: ACTION_TYPES.OPTIMIZE_IMAGES_SUBMIT,
+    payload: text
+  };
+};
