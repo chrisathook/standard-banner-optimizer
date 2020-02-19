@@ -9,6 +9,7 @@ import CleanCSS from 'clean-css';
 import tinify from 'tinify';
 import archiver from 'archiver';
 import KEYS from '../constants/api_keys';
+import copyfiles from 'copyfiles';
 function copySource(sourcePath, destPath) {
   return new Promise(((resolve, reject) => {
     let timestamp = moment().format('YYYYMMDD_HHmmSS');
@@ -91,12 +92,12 @@ function tinifyImages(rootPath) {
       // console.log('!!!', file);
       let data = await fs.readFile(file);
       data = await new Promise(((resolve1, reject1) => {
-        tinify.fromBuffer(data).toBuffer((err,resultData)=>{
+        tinify.fromBuffer(data).toBuffer((err, resultData) => {
           if (err) {
             throw err;
           }
           resolve1(resultData);
-        })
+        });
       }));
       await fs.writeFile(file, data);
     };
@@ -108,68 +109,58 @@ function tinifyImages(rootPath) {
   }));
 }
 // minification
-
-
-
-function makeZips (rootPath) {
+function makeZips(rootPath) {
+  const finalDir = path.join(rootPath, '../', 'final_zips');
+  fs.mkdirSync(finalDir);
   return new Promise(((resolve, reject) => {
     let makeZip = async (bannerRootParse) => {
-
       await new Promise(((resolve1, reject1) => {
-
-
-      let {dir, root, base, name, ext} = bannerRootParse;
-      let closestFolder = dir.split ("/").slice (-1).pop();
-
-      const output = fs.createWriteStream (path.join(dir,`${closestFolder}.zip`));
-      const archive = archiver('zip', {
-        zlib: { level: 9 } // Sets the compression level.
-      });
-      output.on('close', function() {
-        console.log(archive.pointer() + ' total bytes');
-        console.log('archiver has been finalized and the output file descriptor has closed.');
-      });
-      archive.on('warning', function(err) {
-        if (err.code === 'ENOENT') {
-          console.warn(err)
-        } else {
-          // throw error
-          throw err;
-        }
-      });
-      archive.on('error', function(err) {
-        throw err;
-      });
-      output.on('end', function() {
-        console.log('Data has been drained');
-        resolve1 ()
-      });
-      archive.pipe(output);
-
-      archive.glob(
-        path.join ('**/*.{html,jpg,png,svg,js,css}'),
-        {
-          cwd:dir,
-          root:dir
+        const { dir, root, base, name, ext } = bannerRootParse;
+        const closestFolder = dir.split('/').slice(-1).pop();
+        const zipName = path.join(dir, `${closestFolder}.zip`);
+        const output = fs.createWriteStream(zipName);
+        const archive = archiver('zip', {
+          zlib: { level: 9 } // Sets the compression level.
         });
-      archive.finalize();
+        output.on('close', function() {
+          console.log(archive.pointer() + ' total bytes');
+          console.log('archiver has been finalized and the output file descriptor has closed.');
+          resolve1();
+        });
+        archive.on('warning', function(err) {
+          if (err.code === 'ENOENT') {
+            console.warn(err);
+          } else {
+            // throw error
+            throw err;
+          }
+        });
+        archive.on('error', function(err) {
+          throw err;
+        });
+        output.on('end', function() {
+          console.log('Data has been drained');
+        });
+        archive.pipe(output);
+        archive.glob(
+          path.join('**/*.{html,jpg,png,svg,js,css}'),
+          {
+            cwd: dir,
+            root: dir
+          });
+        archive.finalize();
       }));
     };
-
-
     glob(path.join(rootPath, '**/index.html'))
       .then(files => {
-       return files.map(path.parse);
+        return files.map(path.parse);
       })
-      .then (paths =>{
-        paths.forEach(makeZip)
+      .then(paths => {
+        paths.forEach(makeZip);
       })
-
-
+      .then(() => resolve(rootPath));
   }));
 }
-
-
 function nullPromise(...args) {
   return Promise.resolve(...args);
 }
