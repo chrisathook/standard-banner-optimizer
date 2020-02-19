@@ -8,13 +8,14 @@ import * as JSMinifier from 'uglify-js';
 import CleanCSS from 'clean-css';
 import tinify from 'tinify';
 import archiver from 'archiver';
+import deleteEmpty from "delete-empty"
 import KEYS from '../constants/api_keys';
 function copySource(sourcePath, destPath) {
   return new Promise(((resolve, reject) => {
     let timestamp = moment().format('YYYYMMDD_HHmmSS');
     let finalRootPath = path.join(destPath, timestamp);
-    let finalBannerPath = path.join (finalRootPath,"source");
-    let finalZipPath = path.join (finalRootPath,"final_zips");
+    let finalBannerPath = path.join(finalRootPath, 'source');
+    let finalZipPath = path.join(finalRootPath, 'final_zips');
     try {
       fs.copySync(sourcePath, finalBannerPath);
       //console.log('success!');
@@ -22,14 +23,11 @@ function copySource(sourcePath, destPath) {
       console.error(err);
       reject();
     }
-    resolve({finalRootPath,finalBannerPath,finalZipPath});
+    resolve({ finalRootPath, finalBannerPath, finalZipPath });
   }));
 }
 function minifyHTML(pathObj) {
-
-  const {finalRootPath,finalBannerPath,finalZipPath} = pathObj;
-
-
+  const { finalRootPath, finalBannerPath, finalZipPath } = pathObj;
   return new Promise(((resolve, reject) => {
     let run = async (file) => {
       //console.log('!!!', file);
@@ -52,8 +50,7 @@ function minifyHTML(pathObj) {
   }));
 }
 function minifyJS(pathObj) {
-
-  const {finalRootPath,finalBannerPath,finalZipPath} = pathObj;
+  const { finalRootPath, finalBannerPath, finalZipPath } = pathObj;
   return new Promise(((resolve, reject) => {
     let run = async (file) => {
       // console.log('!!!', file);
@@ -74,8 +71,7 @@ function minifyJS(pathObj) {
   }));
 }
 function minifyCSS(pathObj) {
-
-  const {finalRootPath,finalBannerPath,finalZipPath} = pathObj;
+  const { finalRootPath, finalBannerPath, finalZipPath } = pathObj;
   return new Promise(((resolve, reject) => {
     let run = async (file) => {
       //console.log('!!!', file);
@@ -93,8 +89,7 @@ function minifyCSS(pathObj) {
   }));
 }
 function tinifyImages(pathObj) {
-
-  const {finalRootPath,finalBannerPath,finalZipPath} = pathObj;
+  const { finalRootPath, finalBannerPath, finalZipPath } = pathObj;
   tinify.key = KEYS.TINIFY;
   // console.log('!!', rootPath);
   return new Promise(((resolve, reject) => {
@@ -120,9 +115,7 @@ function tinifyImages(pathObj) {
 }
 // minification
 function makeZips(pathObj) {
-
-  const {finalRootPath,finalBannerPath,finalZipPath} = pathObj;
-
+  const { finalRootPath, finalBannerPath, finalZipPath } = pathObj;
   return new Promise(((resolve, reject) => {
     let makeZip = async (bannerRootParse) => {
       await new Promise(((resolve1, reject1) => {
@@ -172,14 +165,29 @@ function makeZips(pathObj) {
       .then(() => resolve(pathObj));
   }));
 }
+async function copyZips(pathObj) {
+  const { finalRootPath, finalBannerPath, finalZipPath } = pathObj;
+  await new Promise((resolve => {
+    setTimeout(() => {
+      fs.mkdirSync(finalZipPath);
+      fs.copySync(finalBannerPath, finalZipPath);
+      setTimeout(resolve, 500);
+    }, 500);
+  }));
+  await new Promise((resolve => {
+    glob(path.join(finalZipPath, '**/*.{html,jpg,png,svg,js,css}'))
+      .then(files => {
+        files.forEach(file => {
+          //console.log('111 delete file', file);
+          fs.removeSync(file);
+        });
+      })
+      .then(resolve);
+  }));
 
-function copyZips (rootPath) {
-
-  const finalDir = path.join(rootPath, 'final_zips');
-  fs.mkdirSync(finalDir);
+  await deleteEmpty (finalZipPath);
+  return pathObj;
 }
-
-
 function nullPromise(...args) {
   return Promise.resolve(...args);
 }
@@ -205,6 +213,7 @@ export default (event, config) => {
       .then(cssMinOption === 'true' ? minifyCSS : nullPromise)
       .then(optimizeImages === 'true' ? tinifyImages : nullPromise)
       .then(createZips === 'true' ? makeZips : nullPromise)
+      .then(createZips === 'true' ? copyZips : nullPromise)
       .then(resolve);
   }));
 };
