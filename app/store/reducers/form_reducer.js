@@ -9,7 +9,7 @@ export const initialState = {
   jsMinOption: 'true',
   cssMinOption: 'true',
   svgMinOption: 'true',
-  optimizeImages: 'true',
+  optimizeImages: 'false',
   createZips: 'true'
 };
 export const FormReducer = (state, action) => {
