@@ -9,22 +9,27 @@ import CleanCSS from 'clean-css';
 import tinify from 'tinify';
 import archiver from 'archiver';
 import KEYS from '../constants/api_keys';
-import copyfiles from 'copyfiles';
 function copySource(sourcePath, destPath) {
   return new Promise(((resolve, reject) => {
     let timestamp = moment().format('YYYYMMDD_HHmmSS');
-    let finalPath = path.join(destPath, timestamp);
+    let finalRootPath = path.join(destPath, timestamp);
+    let finalBannerPath = path.join (finalRootPath,"source");
+    let finalZipPath = path.join (finalRootPath,"final_zips");
     try {
-      fs.copySync(sourcePath, finalPath);
+      fs.copySync(sourcePath, finalBannerPath);
       //console.log('success!');
     } catch (err) {
       console.error(err);
       reject();
     }
-    resolve(finalPath);
+    resolve({finalRootPath,finalBannerPath,finalZipPath});
   }));
 }
-function minifyHTML(rootPath) {
+function minifyHTML(pathObj) {
+
+  const {finalRootPath,finalBannerPath,finalZipPath} = pathObj;
+
+
   return new Promise(((resolve, reject) => {
     let run = async (file) => {
       //console.log('!!!', file);
@@ -39,15 +44,16 @@ function minifyHTML(rootPath) {
       });
       await fs.writeFile(file, data);
     };
-    glob(path.join(rootPath, '**/*.html'))
+    glob(path.join(finalBannerPath, '**/*.html'))
       .then(files => {
         files.forEach(run);
       })
-      .then(() => resolve(rootPath));
+      .then(() => resolve(pathObj));
   }));
 }
-function minifyJS(rootPath) {
-  //console.log('!!', rootPath);
+function minifyJS(pathObj) {
+
+  const {finalRootPath,finalBannerPath,finalZipPath} = pathObj;
   return new Promise(((resolve, reject) => {
     let run = async (file) => {
       // console.log('!!!', file);
@@ -60,14 +66,16 @@ function minifyJS(rootPath) {
       }).code;
       await fs.writeFile(file, data);
     };
-    glob(path.join(rootPath, '**/*.js'))
+    glob(path.join(finalBannerPath, '**/*.js'))
       .then(files => {
         files.forEach(run);
       })
-      .then(() => resolve(rootPath));
+      .then(() => resolve(pathObj));
   }));
 }
-function minifyCSS(rootPath) {
+function minifyCSS(pathObj) {
+
+  const {finalRootPath,finalBannerPath,finalZipPath} = pathObj;
   return new Promise(((resolve, reject) => {
     let run = async (file) => {
       //console.log('!!!', file);
@@ -77,14 +85,16 @@ function minifyCSS(rootPath) {
       data = data.styles;
       await fs.writeFile(file, data);
     };
-    glob(path.join(rootPath, '**/*.css'))
+    glob(path.join(finalBannerPath, '**/*.css'))
       .then(files => {
         files.forEach(run);
       })
-      .then(() => resolve(rootPath));
+      .then(() => resolve(pathObj));
   }));
 }
-function tinifyImages(rootPath) {
+function tinifyImages(pathObj) {
+
+  const {finalRootPath,finalBannerPath,finalZipPath} = pathObj;
   tinify.key = KEYS.TINIFY;
   // console.log('!!', rootPath);
   return new Promise(((resolve, reject) => {
@@ -101,17 +111,18 @@ function tinifyImages(rootPath) {
       }));
       await fs.writeFile(file, data);
     };
-    glob(path.join(rootPath, '**/*.{jpg,png}'))
+    glob(path.join(finalBannerPath, '**/*.{jpg,png}'))
       .then(files => {
         files.forEach(run);
       })
-      .then(() => resolve(rootPath));
+      .then(() => resolve(pathObj));
   }));
 }
 // minification
-function makeZips(rootPath) {
-  const finalDir = path.join(rootPath, '../', 'final_zips');
-  fs.mkdirSync(finalDir);
+function makeZips(pathObj) {
+
+  const {finalRootPath,finalBannerPath,finalZipPath} = pathObj;
+
   return new Promise(((resolve, reject) => {
     let makeZip = async (bannerRootParse) => {
       await new Promise(((resolve1, reject1) => {
@@ -151,16 +162,24 @@ function makeZips(rootPath) {
         archive.finalize();
       }));
     };
-    glob(path.join(rootPath, '**/index.html'))
+    glob(path.join(finalBannerPath, '**/index.html'))
       .then(files => {
         return files.map(path.parse);
       })
       .then(paths => {
         paths.forEach(makeZip);
       })
-      .then(() => resolve(rootPath));
+      .then(() => resolve(pathObj));
   }));
 }
+
+function copyZips (rootPath) {
+
+  const finalDir = path.join(rootPath, 'final_zips');
+  fs.mkdirSync(finalDir);
+}
+
+
 function nullPromise(...args) {
   return Promise.resolve(...args);
 }
