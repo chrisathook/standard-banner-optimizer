@@ -1,6 +1,7 @@
 // @flow
 import fs from 'fs-extra';
 import moment from 'moment';
+import { promisify } from 'util';
 import path from 'path';
 import glob from 'glob-promise';
 import * as HTMLMinifier from 'html-minifier';
@@ -8,7 +9,7 @@ import * as JSMinifier from 'uglify-js';
 import CleanCSS from 'clean-css';
 import tinify from 'tinify';
 import archiver from 'archiver';
-import deleteEmpty from "delete-empty"
+import deleteEmpty from 'delete-empty';
 import KEYS from '../constants/api_keys';
 function copySource(sourcePath, destPath) {
   return new Promise(((resolve, reject) => {
@@ -184,9 +185,57 @@ async function copyZips(pathObj) {
       })
       .then(resolve);
   }));
-
-  await deleteEmpty (finalZipPath);
+  await deleteEmpty(finalZipPath);
   return pathObj;
+}
+// tests
+function testZipSize(filePath) {
+  const stats = fs.statSync(filePath);
+  const fileSizeInBytes = stats['size'];
+  const fileSizeInKilobytes = fileSizeInBytes / 1000.0;
+  const maxSize = 15.0;
+  const isUnder = fileSizeInKilobytes <= maxSize;
+  const testFailed = !isUnder;
+  return {
+    isUnder,
+    fileSizeInBytes,
+    fileSizeInKilobytes,
+    maxSize,
+    testFailed
+  };
+}
+function testZips(pathObj) {
+  return new Promise(async (resolve, reject) => {
+    const { finalRootPath, finalBannerPath, finalZipPath } = pathObj;
+    const wstream = fs.createWriteStream(path.join(finalZipPath, 'zip_tests.log'));
+    const files = await glob(path.join(finalZipPath, '**/*.zip'));
+    const failedFiles = [];
+    wstream.on('finish', function() {
+      console.log('file has been written');
+      resolve(pathObj);
+    });
+    const run = async (file) => {
+      wstream.write(`BEGIN testing Zip --------------------------------- \n ${file}  `);
+      wstream.write(`Running Zip Size Test : \n `);
+      const sizeResults = testZipSize(file);
+      if (sizeResults.testFailed) {
+        failedFiles.push(file);
+        wstream.write(`---------------TEST FAILED !!!!!! \n `);
+        wstream.write(`File size in KB ${sizeResults.fileSizeInKilobytes} is > ${sizeResults.maxSize} \n `);
+      } else {
+        wstream.write(`TEST PASSED \n `);
+      }
+      wstream.write(`File size in KB ${sizeResults.fileSizeInKilobytes} \n `);
+      wstream.write(`File size in Bytes ${sizeResults.fileSizeInBytes} \n `);
+    };
+    files.forEach(run);
+    wstream.write(`ZIP TESTING COMPLETE __________________________________ \n `);
+    wstream.write(`THE FOLLOWING FILES HAVE FAILED TESTS \n `);
+    failedFiles.forEach(file => {
+      wstream.write(`FAILED ${file} \n `);
+    });
+    wstream.end();
+  });
 }
 function nullPromise(...args) {
   return Promise.resolve(...args);
@@ -214,6 +263,7 @@ export default (event, config) => {
       .then(optimizeImages === 'true' ? tinifyImages : nullPromise)
       .then(createZips === 'true' ? makeZips : nullPromise)
       .then(createZips === 'true' ? copyZips : nullPromise)
+      .then(createZips === 'true' ? testZips : nullPromise)
       .then(resolve);
   }));
 };
