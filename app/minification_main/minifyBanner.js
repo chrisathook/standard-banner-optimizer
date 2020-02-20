@@ -11,6 +11,8 @@ import tinify from 'tinify';
 import archiver from 'archiver';
 import deleteEmpty from 'delete-empty';
 import KEYS from '../constants/api_keys';
+import Client from 'ssh2-sftp-client';
+import slash from 'slash';
 function copySource(sourcePath, destPath) {
   return new Promise(((resolve, reject) => {
     let timestamp = moment().format('YYYYMMDD_HHmmSS');
@@ -24,7 +26,7 @@ function copySource(sourcePath, destPath) {
       console.error(err);
       reject();
     }
-    resolve({ finalRootPath, finalBannerPath, finalZipPath });
+    resolve({ finalRootPath, finalBannerPath, finalZipPath, timestamp });
   }));
 }
 function minifyHTML(pathObj) {
@@ -156,25 +158,41 @@ function makeZips(pathObj) {
         archive.finalize();
       }));
     };
-    glob(path.join(finalBannerPath, '**/index.html'))
-      .then(files => {
-        return files.map(path.parse);
-      })
+    // find all banners
+    findAllBannerFolderRoots(finalBannerPath)
       .then(paths => {
         paths.forEach(makeZip);
       })
       .then(() => resolve(pathObj));
   }));
 }
-async function copyZips(pathObj) {
+/**
+ * takes in path and finds all banner roots assuming index.html file
+ * @param targetPath
+ * @returns {Promise<string[]>}
+ */
+function findAllBannerFolderRoots(targetPath) {
+  return new Promise((resolve, reject) => {
+    glob(path.join(targetPath, '**/index.html'))
+      .then(files => {
+        return files.map(path.parse);
+      })
+      .then((paths) => resolve(paths));
+  });
+}
+ function copyZips(pathObj) {
   const { finalRootPath, finalBannerPath, finalZipPath } = pathObj;
-  await new Promise((resolve => {
+  return  new Promise((resolve => {
     setTimeout(() => {
       fs.mkdirSync(finalZipPath);
       fs.copySync(finalBannerPath, finalZipPath);
-      setTimeout(resolve, 500);
+      setTimeout(()=>{resolve(pathObj)}, 500);
     }, 500);
   }));
+
+}
+async function cleanUp(pathObj) {
+  const { finalRootPath, finalBannerPath, finalZipPath } = pathObj;
   await new Promise((resolve => {
     glob(path.join(finalZipPath, '**/*.{html,jpg,png,svg,js,css}'))
       .then(files => {
@@ -196,8 +214,6 @@ async function copyZips(pathObj) {
       })
       .then(resolve);
   }));
-
-  return pathObj;
 }
 // tests
 function testZipSize(filePath, loggingStream) {
@@ -228,7 +244,6 @@ function testZips(pathObj) {
     const files = await glob(path.join(finalZipPath, '**/*.zip'));
     const failedFiles = [];
     wstream.on('finish', function() {
-      console.log('file has been written');
       resolve(pathObj);
     });
     const run = async (file) => {
@@ -244,6 +259,32 @@ function testZips(pathObj) {
     });
     wstream.end();
   });
+}
+async function uploadAllFiles(localRoot, remoteRoot, sftp) {
+
+  const rslt = await sftp.uploadDir (localRoot,remoteRoot);
+  console.log (rslt)
+
+}
+// screenshots
+ function MakeScreenshots(pathObj) {
+  return new Promise (async (resolve, reject) => {
+    const { finalRootPath, finalBannerPath, finalZipPath, timestamp } = pathObj;
+    const remoteRoot = KEYS.FTP_ROOT + `/${timestamp}`;
+    const sftp = new Client();
+    await sftp.connect({
+      host: KEYS.FTP_DOMAIN,
+      port: 22,
+      username: KEYS.FTP_USER,
+      password: KEYS.FTP_PW
+    });
+    await sftp.mkdir(remoteRoot);
+    await uploadAllFiles(finalZipPath, remoteRoot, sftp);
+    sftp.end();
+    resolve (pathObj) ;
+  })
+
+
 }
 function nullPromise(...args) {
   return Promise.resolve(...args);
@@ -272,6 +313,8 @@ export default (event, config) => {
       .then(createZips === 'true' ? makeZips : nullPromise)
       .then(createZips === 'true' ? copyZips : nullPromise)
       .then(createZips === 'true' ? testZips : nullPromise)
+      .then(createZips === 'true' ? MakeScreenshots : nullPromise)
+      .then(createZips === 'true' ? cleanUp : nullPromise)
       .then(resolve);
   }));
 };
