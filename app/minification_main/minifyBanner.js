@@ -186,16 +186,33 @@ async function copyZips(pathObj) {
       .then(resolve);
   }));
   await deleteEmpty(finalZipPath);
+  await new Promise((resolve => {
+    glob(path.join(finalBannerPath, '**/*.zip'))
+      .then(files => {
+        files.forEach(file => {
+          //console.log('111 delete file', file);
+          fs.removeSync(file);
+        });
+      })
+      .then(resolve);
+  }));
+
   return pathObj;
 }
 // tests
-function testZipSize(filePath) {
+function testZipSize(filePath, loggingStream) {
   const stats = fs.statSync(filePath);
   const fileSizeInBytes = stats['size'];
   const fileSizeInKilobytes = fileSizeInBytes / 1000.0;
-  const maxSize = 15.0;
+  const maxSize = 150.0;
   const isUnder = fileSizeInKilobytes <= maxSize;
   const testFailed = !isUnder;
+  loggingStream.write(`Running Zip Size Test : \n`);
+  if (testFailed) {
+    loggingStream.write(`TEST FAILED  !! --------------- File size in KB ${fileSizeInKilobytes} is > ${maxSize} \n `);
+  } else {
+    loggingStream.write(`  TEST PASSED *** File size in KB ${fileSizeInKilobytes} is <= ${maxSize} \n `);
+  }
   return {
     isUnder,
     fileSizeInBytes,
@@ -215,18 +232,9 @@ function testZips(pathObj) {
       resolve(pathObj);
     });
     const run = async (file) => {
-      wstream.write(`BEGIN testing Zip --------------------------------- \n ${file}  `);
-      wstream.write(`Running Zip Size Test : \n `);
-      const sizeResults = testZipSize(file);
-      if (sizeResults.testFailed) {
-        failedFiles.push(file);
-        wstream.write(`---------------TEST FAILED !!!!!! \n `);
-        wstream.write(`File size in KB ${sizeResults.fileSizeInKilobytes} is > ${sizeResults.maxSize} \n `);
-      } else {
-        wstream.write(`TEST PASSED \n `);
-      }
-      wstream.write(`File size in KB ${sizeResults.fileSizeInKilobytes} \n `);
-      wstream.write(`File size in Bytes ${sizeResults.fileSizeInBytes} \n `);
+      wstream.write(`BEGIN ALL TESTS ON Zip --- \n ${file}  `);
+      const sizeResults = testZipSize(file, wstream);
+      if (sizeResults.testFailed) failedFiles.push(file);
     };
     files.forEach(run);
     wstream.write(`ZIP TESTING COMPLETE __________________________________ \n `);
