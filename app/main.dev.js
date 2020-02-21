@@ -98,8 +98,6 @@ app.on('activate', () => {
 });
 ipcMain.on(ipcEvents.START_MINIFICATION, (event, arg) => {
   //console.log('!!MAIN ', arg); // prints "ping"
-  minifier(event, arg)
-    .then((result) => {
-      event.reply(ipcEvents.END_MINIFICATION, 'minification done');
-    });
+  minifier(event, arg);
+  event.reply(ipcEvents.END_MINIFICATION, 'minification done');
 });

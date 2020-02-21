@@ -4,9 +4,6 @@ import moment from 'moment';
 import { BrowserWindow, ipcMain, NativeImage, Rectangle } from 'electron';
 import path from 'path';
 import glob from 'glob-promise';
-import * as HTMLMinifier from 'html-minifier';
-import * as JSMinifier from 'uglify-js';
-import CleanCSS from 'clean-css';
 import tinify from 'tinify';
 import archiver from 'archiver';
 import deleteEmpty from 'delete-empty';
@@ -14,109 +11,7 @@ import KEYS from '../constants/api_keys';
 import slash from 'slash';
 import eachLimit from 'async/eachLimit';
 import cheerio from 'cheerio';
-function copySource(sourcePath, destPath) {
-  return new Promise(((resolve, reject) => {
-    let timestamp = moment().format('YYYYMMDD_HHmmSS');
-    let finalRootPath = path.join(destPath, timestamp);
-    let finalBannerPath = path.join(finalRootPath, 'source');
-    let finalZipPath = path.join(finalRootPath, 'final_zips');
-    try {
-      fs.copySync(sourcePath, finalBannerPath);
-      //console.log('success!');
-    } catch (err) {
-      console.error(err);
-      reject();
-    }
-    resolve({ finalRootPath, finalBannerPath, finalZipPath, timestamp });
-  }));
-}
-function minifyHTML(pathObj) {
-  const { finalRootPath, finalBannerPath, finalZipPath } = pathObj;
-  return new Promise(((resolve, reject) => {
-    let run = async (file) => {
-      //console.log('!!!', file);
-      let data = await fs.readFile(file, 'utf8');
-      data = HTMLMinifier.minify(data, {
-        collapseWhitespace: true,
-        conservativeCollapse: true,
-        html5: true,
-        minifyCSS: true,
-        minifyJS: true,
-        removeComments: true
-      });
-      await fs.writeFile(file, data);
-    };
-    glob(path.join(finalBannerPath, '**/*.html'))
-      .then(files => {
-        files.forEach(run);
-      })
-      .then(() => resolve(pathObj));
-  }));
-}
-function minifyJS(pathObj) {
-  const { finalRootPath, finalBannerPath, finalZipPath } = pathObj;
-  return new Promise(((resolve, reject) => {
-    let run = async (file) => {
-      // console.log('!!!', file);
-      let data = await fs.readFile(file, 'utf8');
-      data = JSMinifier.minify(data, {
-        compress: {
-          drop_console: true,
-          keep_fnames: true
-        }
-      }).code;
-      await fs.writeFile(file, data);
-    };
-    glob(path.join(finalBannerPath, '**/*.js'))
-      .then(files => {
-        files.forEach(run);
-      })
-      .then(() => resolve(pathObj));
-  }));
-}
-function minifyCSS(pathObj) {
-  const { finalRootPath, finalBannerPath, finalZipPath } = pathObj;
-  return new Promise(((resolve, reject) => {
-    let run = async (file) => {
-      //console.log('!!!', file);
-      let data = await fs.readFile(file, 'utf8');
-      let css = new CleanCSS({ returnPromise: true });
-      data = await css.minify(data);
-      data = data.styles;
-      await fs.writeFile(file, data);
-    };
-    glob(path.join(finalBannerPath, '**/*.css'))
-      .then(files => {
-        files.forEach(run);
-      })
-      .then(() => resolve(pathObj));
-  }));
-}
-function tinifyImages(pathObj) {
-  const { finalRootPath, finalBannerPath, finalZipPath } = pathObj;
-  tinify.key = KEYS.TINIFY;
-  // console.log('!!', rootPath);
-  return new Promise(((resolve, reject) => {
-    let run = async (file) => {
-      // console.log('!!!', file);
-      let data = await fs.readFile(file);
-      data = await new Promise(((resolve1, reject1) => {
-        tinify.fromBuffer(data).toBuffer((err, resultData) => {
-          if (err) {
-            throw err;
-          }
-          resolve1(resultData);
-        });
-      }));
-      await fs.writeFile(file, data);
-    };
-    glob(path.join(finalBannerPath, '**/*.{jpg,png}'))
-      .then(files => {
-        files.forEach(run);
-      })
-      .then(() => resolve(pathObj));
-  }));
-}
+import { copySource } from './utils';
 function getClosetFolderFromPath(path: string) {
   return path.split('/').slice(-1).pop();
 }
@@ -342,35 +237,40 @@ tinify.validate(function(err) {
   if (err) throw err;
   console.log('!!!! API KEY GOOD');
 });
-export default (event, config) => {
-  return new Promise(((resolve, reject) => {
-    const {
-      sourcePathText,
-      outputPathText,
-      htmlMinOption,
-      jsMinOption,
-      cssMinOption,
-      optimizeImages,
-      createZips,
-      devicePixelRatio,
-      zipFileSizeLimit,
-      staticFileSizeLimit
-    } = config;
-    copySource(sourcePathText, outputPathText)
-      .then(htmlMinOption === 'true' ? minifyHTML : nullPromise)
-      .then(jsMinOption === 'true' ? minifyJS : nullPromise)
-      .then(cssMinOption === 'true' ? minifyCSS : nullPromise)
-      .then(optimizeImages === 'true' ? tinifyImages : nullPromise)
-      .then(createZips === 'true' ? makeZips : nullPromise)
-      .then(createZips === 'true' ? copyZips : nullPromise)
-      .then(createZips === 'true' ? (pathObj) => {
-        return MakeScreenshots(pathObj, devicePixelRatio, staticFileSizeLimit);
-      } : nullPromise)
-      .then(createZips === 'true' ? (pathObj) => {
-        return testZips(pathObj, zipFileSizeLimit, staticFileSizeLimit);
-      } : nullPromise)
-
-      //.then(createZips === 'true' ? cleanUp : nullPromise)
-      .then(resolve);
-  }));
+export default async (event, config) => {
+  // vars from UI
+  const {
+    sourcePathText,
+    outputPathText,
+    htmlMinOption,
+    jsMinOption,
+    cssMinOption,
+    optimizeImages,
+    createZips,
+    devicePixelRatio,
+    zipFileSizeLimit,
+    staticFileSizeLimit
+  } = config;
+  // generated vars
+  let timestamp = moment().format('YYYYMMDD_HHmmSS');
+  let finalRootPath = path.join(outputPathText, timestamp);
+  let finalBannerPath = path.join(finalRootPath, 'source');
+  let finalZipPath = path.join(finalRootPath, 'final_zips');
+  let jobVars = { timestamp, finalRootPath, finalBannerPath, finalZipPath };
+  await copySource(sourcePathText, finalBannerPath);
+    /*
+    .then(htmlMinOption === 'true' ? minifyHTML : nullPromise)
+    .then(jsMinOption === 'true' ? minifyJS : nullPromise)
+    .then(cssMinOption === 'true' ? minifyCSS : nullPromise)
+    .then(optimizeImages === 'true' ? tinifyImages : nullPromise)
+    .then(createZips === 'true' ? makeZips : nullPromise)
+    .then(createZips === 'true' ? copyZips : nullPromise)
+    .then(createZips === 'true' ? (pathObj) => {
+      return MakeScreenshots(pathObj, devicePixelRatio, staticFileSizeLimit);
+    } : nullPromise)
+    .then(createZips === 'true' ? (pathObj) => {
+      return testZips(pathObj, zipFileSizeLimit, staticFileSizeLimit);
+    } : nullPromise)
+  .then(createZips === 'true' ? cleanUp : nullPromise)*/
+  return '';
 };
