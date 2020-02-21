@@ -169,7 +169,7 @@ function makeZips(pathObj) {
 /**
  * takes in path and finds all banner roots assuming index.html file
  * @param targetPath
- * @returns {Promise<string[]>}
+ * @returns {Promise<object[]>}
  */
 function findAllBannerFolderRoots(targetPath) {
   return new Promise((resolve, reject) => {
@@ -177,19 +177,20 @@ function findAllBannerFolderRoots(targetPath) {
       .then(files => {
         return files.map(path.parse);
       })
-      .then((paths) => resolve(paths));
+      .then((paths:object[]) => resolve(paths));
   });
 }
- function copyZips(pathObj) {
+function copyZips(pathObj) {
   const { finalRootPath, finalBannerPath, finalZipPath } = pathObj;
-  return  new Promise((resolve => {
+  return new Promise((resolve => {
     setTimeout(() => {
       fs.mkdirSync(finalZipPath);
       fs.copySync(finalBannerPath, finalZipPath);
-      setTimeout(()=>{resolve(pathObj)}, 500);
+      setTimeout(() => {
+        resolve(pathObj);
+      }, 500);
     }, 500);
   }));
-
 }
 async function cleanUp(pathObj) {
   const { finalRootPath, finalBannerPath, finalZipPath } = pathObj;
@@ -260,17 +261,12 @@ function testZips(pathObj) {
     wstream.end();
   });
 }
-async function uploadAllFiles(localRoot, remoteRoot, sftp) {
-
-  const rslt = await sftp.uploadDir (localRoot,remoteRoot);
-  console.log (rslt)
-
-}
 // screenshots
- function MakeScreenshots(pathObj) {
-  return new Promise (async (resolve, reject) => {
+function MakeScreenshots(pathObj) {
+  return new Promise(async (resolve, reject) => {
     const { finalRootPath, finalBannerPath, finalZipPath, timestamp } = pathObj;
     const remoteRoot = KEYS.FTP_ROOT + `/${timestamp}`;
+    const remoteHTTPSRoot = KEYS.FTP_HTTPS_ROOT + `/${timestamp}`;
     const sftp = new Client();
     await sftp.connect({
       host: KEYS.FTP_DOMAIN,
@@ -279,12 +275,14 @@ async function uploadAllFiles(localRoot, remoteRoot, sftp) {
       password: KEYS.FTP_PW
     });
     await sftp.mkdir(remoteRoot);
-    await uploadAllFiles(finalZipPath, remoteRoot, sftp);
+    const rslt = await sftp.uploadDir(finalZipPath, remoteRoot);
+    let remoteBannerURLS = await findAllBannerFolderRoots(finalZipPath);
+    remoteBannerURLS = remoteBannerURLS.map(root => {
+      return remoteHTTPSRoot + root.dir.replace(slash(finalZipPath), '')+'/'+root.base;
+    });
     sftp.end();
-    resolve (pathObj) ;
-  })
-
-
+    resolve(pathObj);
+  });
 }
 function nullPromise(...args) {
   return Promise.resolve(...args);
