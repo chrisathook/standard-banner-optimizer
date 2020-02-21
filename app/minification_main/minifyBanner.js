@@ -13,7 +13,6 @@ import deleteEmpty from 'delete-empty';
 import KEYS from '../constants/api_keys';
 import slash from 'slash';
 import eachLimit from 'async/eachLimit';
-import jimp from 'jimp';
 function copySource(sourcePath, destPath) {
   return new Promise(((resolve, reject) => {
     let timestamp = moment().format('YYYYMMDD_HHmmSS');
@@ -283,20 +282,31 @@ function MakeScreenshots(pathObj) {
         });
       shotWindow.loadURL(slash(path.join(file.dir, file.base)));
       shotWindow.once('ready-to-show', (e) => {
-        shotWindow.show();
-        shotWindow.focus();
+       // shotWindow.show();
+        //shotWindow.focus();
         console.log('WINDOW SHOULD BE OPEN');
         shotWindow.capturePage()
           .then(img => {
-            let imgBuffer = img.toJPEG(80);
-            let jpegPath = path.join(file.dir, file.base).replace('index.html', 'static.jpg');
-            fs.writeFileSync(jpegPath, imgBuffer);
-            console.log('static saved');
+            const jpegPath = path.join(file.dir, file.base).replace('index.html', 'static.jpg');
+            const maxSize = 150.0;
+            let compression = 80;
+            const optimize = () => {
+              const imgBuffer = img.toJPEG(compression);
+              fs.writeFileSync(jpegPath, imgBuffer);
+              console.log('static saved',compression);
+            };
+            optimize();
+            while (fs.statSync(jpegPath)['size'] / 1000.0 > maxSize && compression > 15) {
+              compression--;
+              optimize();
+            }
+            console.log('static optimized');
+            callback();
           });
-        //callback ();
       });
     };
     await eachLimit(paths, 1, run);
+    resolve()
   });
 }
 function nullPromise(...args) {
@@ -325,8 +335,9 @@ export default (event, config) => {
       .then(optimizeImages === 'true' ? tinifyImages : nullPromise)
       .then(createZips === 'true' ? makeZips : nullPromise)
       .then(createZips === 'true' ? copyZips : nullPromise)
-      .then(createZips === 'true' ? testZips : nullPromise)
       .then(createZips === 'true' ? MakeScreenshots : nullPromise)
+      .then(createZips === 'true' ? testZips : nullPromise)
+
       //.then(createZips === 'true' ? cleanUp : nullPromise)
       .then(resolve);
   }));
