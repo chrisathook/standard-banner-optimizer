@@ -1,7 +1,7 @@
 // @flow
 import fs from 'fs-extra';
 import moment from 'moment';
-import { BrowserWindow, ipcMain, NativeImage } from 'electron';
+import { BrowserWindow, ipcMain, NativeImage, Rectangle } from 'electron';
 import path from 'path';
 import glob from 'glob-promise';
 import * as HTMLMinifier from 'html-minifier';
@@ -13,6 +13,7 @@ import deleteEmpty from 'delete-empty';
 import KEYS from '../constants/api_keys';
 import slash from 'slash';
 import eachLimit from 'async/eachLimit';
+import cheerio from 'cheerio';
 function copySource(sourcePath, destPath) {
   return new Promise(((resolve, reject) => {
     let timestamp = moment().format('YYYYMMDD_HHmmSS');
@@ -261,8 +262,17 @@ function testZips(pathObj) {
     wstream.end();
   });
 }
+function getBannerDimensions(filePath) {
+  let fileData = fs.readFileSync(filePath, 'utf8');
+  const $ = cheerio.load(fileData);
+  let sizing: string = $(`meta[name='ad.size']`).attr('content');
+  const width = Number(sizing.split(',')[0].split('=')[1]);
+  const height = Number(sizing.split(',')[1].split('=')[1]);
+  console.log(width, height);
+  return { width, height };
+}
 // screenshots
-function MakeScreenshots(pathObj) {
+function MakeScreenshots(pathObj, aspectRatio) {
   return new Promise(async (resolve, reject) => {
     const { finalRootPath, finalBannerPath, finalZipPath } = pathObj;
     let paths = await findAllBannerFolderRoots(finalZipPath);
@@ -272,6 +282,7 @@ function MakeScreenshots(pathObj) {
           width: 1024,
           height: 728,
           show: false,
+          backgroundColor:"#FF0000",
           webPreferences: {
             nodeIntegration: false,
             webSecurity: false,
@@ -280,20 +291,32 @@ function MakeScreenshots(pathObj) {
             devTools: false
           }
         });
-      shotWindow.loadURL(slash(path.join(file.dir, file.base)));
+      const bannerURL = path.join(file.dir, file.base);
+      const dimensions = getBannerDimensions(bannerURL);
+      shotWindow.loadURL(slash(bannerURL));
       shotWindow.once('ready-to-show', (e) => {
-       // shotWindow.show();
-        //shotWindow.focus();
         console.log('WINDOW SHOULD BE OPEN');
+        shotWindow.show();
+        shotWindow.focus();
         shotWindow.capturePage()
           .then(img => {
+            img = img.crop({
+              x: 0,
+              y: 0,
+              width: Math.round (dimensions.width * aspectRatio),
+              height: Math.round(dimensions.height * aspectRatio)
+            });
+            img = img.resize({
+              width: dimensions.width,
+              height: dimensions.height
+            });
             const jpegPath = path.join(file.dir, file.base).replace('index.html', 'static.jpg');
             const maxSize = 150.0;
             let compression = 80;
             const optimize = () => {
               const imgBuffer = img.toJPEG(compression);
               fs.writeFileSync(jpegPath, imgBuffer);
-              console.log('static saved',compression);
+              console.log('static saved', compression);
             };
             optimize();
             while (fs.statSync(jpegPath)['size'] / 1000.0 > maxSize && compression > 15) {
@@ -301,12 +324,12 @@ function MakeScreenshots(pathObj) {
               optimize();
             }
             console.log('static optimized');
-            callback();
+            //callback();
           });
       });
     };
     await eachLimit(paths, 1, run);
-    resolve()
+    resolve(pathObj);
   });
 }
 function nullPromise(...args) {
@@ -326,7 +349,8 @@ export default (event, config) => {
       jsMinOption,
       cssMinOption,
       optimizeImages,
-      createZips
+      createZips,
+      devicePixelRatio
     } = config;
     copySource(sourcePathText, outputPathText)
       .then(htmlMinOption === 'true' ? minifyHTML : nullPromise)
@@ -335,7 +359,9 @@ export default (event, config) => {
       .then(optimizeImages === 'true' ? tinifyImages : nullPromise)
       .then(createZips === 'true' ? makeZips : nullPromise)
       .then(createZips === 'true' ? copyZips : nullPromise)
-      .then(createZips === 'true' ? MakeScreenshots : nullPromise)
+      .then(createZips === 'true' ? (pathObj) => {
+        return MakeScreenshots(pathObj, devicePixelRatio);
+      } : nullPromise)
       .then(createZips === 'true' ? testZips : nullPromise)
 
       //.then(createZips === 'true' ? cleanUp : nullPromise)

@@ -21,6 +21,7 @@ const Home = () => {
   };
   // effects
   useEffect(() => {
+    formDispatch(ACTIONS.window_aspect_ratio_submit(window.devicePixelRatio));
     let listener = (event, arg) => {
       setStatusText('minification complete');
     };

@@ -60,3 +60,9 @@ export const optimize_images_submit = (text) => {
     payload: text
   };
 };
+export const window_aspect_ratio_submit = (text) => {
+  return {
+    type: ACTION_TYPES.WINDOW_ASPECT_RATIO_CHANGE,
+    payload: text
+  };
+};
