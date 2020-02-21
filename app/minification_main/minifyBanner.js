@@ -1,7 +1,7 @@
 // @flow
 import fs from 'fs-extra';
 import moment from 'moment';
-import { promisify } from 'util';
+import { BrowserWindow, ipcMain, NativeImage } from 'electron';
 import path from 'path';
 import glob from 'glob-promise';
 import * as HTMLMinifier from 'html-minifier';
@@ -11,8 +11,9 @@ import tinify from 'tinify';
 import archiver from 'archiver';
 import deleteEmpty from 'delete-empty';
 import KEYS from '../constants/api_keys';
-import Client from 'ssh2-sftp-client';
 import slash from 'slash';
+import eachLimit from 'async/eachLimit';
+import jimp from 'jimp';
 function copySource(sourcePath, destPath) {
   return new Promise(((resolve, reject) => {
     let timestamp = moment().format('YYYYMMDD_HHmmSS');
@@ -177,7 +178,7 @@ function findAllBannerFolderRoots(targetPath) {
       .then(files => {
         return files.map(path.parse);
       })
-      .then((paths:object[]) => resolve(paths));
+      .then((paths: object[]) => resolve(paths));
   });
 }
 function copyZips(pathObj) {
@@ -264,24 +265,38 @@ function testZips(pathObj) {
 // screenshots
 function MakeScreenshots(pathObj) {
   return new Promise(async (resolve, reject) => {
-    const { finalRootPath, finalBannerPath, finalZipPath, timestamp } = pathObj;
-    const remoteRoot = KEYS.FTP_ROOT + `/${timestamp}`;
-    const remoteHTTPSRoot = KEYS.FTP_HTTPS_ROOT + `/${timestamp}`;
-    const sftp = new Client();
-    await sftp.connect({
-      host: KEYS.FTP_DOMAIN,
-      port: 22,
-      username: KEYS.FTP_USER,
-      password: KEYS.FTP_PW
-    });
-    await sftp.mkdir(remoteRoot);
-    const rslt = await sftp.uploadDir(finalZipPath, remoteRoot);
-    let remoteBannerURLS = await findAllBannerFolderRoots(finalZipPath);
-    remoteBannerURLS = remoteBannerURLS.map(root => {
-      return remoteHTTPSRoot + root.dir.replace(slash(finalZipPath), '')+'/'+root.base;
-    });
-    sftp.end();
-    resolve(pathObj);
+    const { finalRootPath, finalBannerPath, finalZipPath } = pathObj;
+    let paths = await findAllBannerFolderRoots(finalZipPath);
+    let run = (file, callback) => {
+      const shotWindow = new BrowserWindow(
+        {
+          width: 1024,
+          height: 728,
+          show: false,
+          webPreferences: {
+            nodeIntegration: false,
+            webSecurity: false,
+            allowRunningInsecureContent: true,
+            frame: false,
+            devTools: false
+          }
+        });
+      shotWindow.loadURL(slash(path.join(file.dir, file.base)));
+      shotWindow.once('ready-to-show', (e) => {
+        shotWindow.show();
+        shotWindow.focus();
+        console.log('WINDOW SHOULD BE OPEN');
+        shotWindow.capturePage()
+          .then(img => {
+            let imgBuffer = img.toJPEG(80);
+            let jpegPath = path.join(file.dir, file.base).replace('index.html', 'static.jpg');
+            fs.writeFileSync(jpegPath, imgBuffer);
+            console.log('static saved');
+          });
+        //callback ();
+      });
+    };
+    await eachLimit(paths, 1, run);
   });
 }
 function nullPromise(...args) {
@@ -312,7 +327,7 @@ export default (event, config) => {
       .then(createZips === 'true' ? copyZips : nullPromise)
       .then(createZips === 'true' ? testZips : nullPromise)
       .then(createZips === 'true' ? MakeScreenshots : nullPromise)
-      .then(createZips === 'true' ? cleanUp : nullPromise)
+      //.then(createZips === 'true' ? cleanUp : nullPromise)
       .then(resolve);
   }));
 };
