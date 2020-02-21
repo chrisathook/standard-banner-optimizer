@@ -66,3 +66,15 @@ export const window_aspect_ratio_submit = (text) => {
     payload: text
   };
 };
+export const zip_file_size_limit = (text) => {
+  return {
+    type: ACTION_TYPES.ZIP_FILE_SIZE_LIMIT,
+    payload: text
+  };
+};
+export const static_file_size_limit = (text) => {
+  return {
+    type: ACTION_TYPES.STATIC_FILE_SIZE_LIMIT,
+    payload: text
+  };
+};

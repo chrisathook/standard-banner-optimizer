@@ -4,7 +4,7 @@ import { Context } from '../../store/Store';
 import * as ACTIONS from '../../store/actions/actions';
 import { remote, ipcRenderer } from 'electron';
 import { isAbsoluteLinuxPath, isAbsoluteWindowsPath } from 'path-validation';
-import { Form, Icon, Input, Button, Checkbox, Select, Row, Col } from 'antd';
+import { Form, Icon, Input,InputNumber , Button, Checkbox, Select, Row, Col } from 'antd';
 import ipcEvents from '../../constants/ipc_events';
 const { TextArea } = Input;
 const { Option } = Select;
@@ -55,6 +55,14 @@ const Home = () => {
   };
   const handleInputOutput = (event) => {
     formDispatch(ACTIONS.output_input_change(event.target.value));
+    event.preventDefault();
+  };
+  const handleZipSizeChange = (value)=>{
+    formDispatch(ACTIONS.zip_file_size_limit(value));
+    event.preventDefault();
+  };
+  const handleStaticSizeChange = (value)=>{
+    formDispatch(ACTIONS.static_file_size_limit(value));
     event.preventDefault();
   };
   const spawnDialog = (event, action) => {
@@ -165,7 +173,15 @@ const Home = () => {
               display_value={formState.createZips}
               submit_function={ACTIONS.zips_submit}
             /></Col>
-            <Col span={8}></Col>
+            <Col span={8}>
+              Zip File Size Limit in KB
+              <InputNumber min={50} max={500} defaultValue={formState.zipFileSizeLimit} onChange={handleZipSizeChange} />
+              <br/>
+              <br/>
+              Static File Size Limit in KB
+              <InputNumber min={20} max={500} defaultValue={formState.staticFileSizeLimit} onChange={handleStaticSizeChange} />
+
+            </Col>
           </Row>
 
         </div>

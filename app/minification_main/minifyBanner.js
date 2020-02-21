@@ -218,28 +218,28 @@ async function cleanUp(pathObj) {
   }));
 }
 // tests
-function testZipSize(filePath, loggingStream) {
+function testZipSize(filePath:String,zipFileSizeLimit:Number, loggingStream) {
   const stats = fs.statSync(filePath);
   const fileSizeInBytes = stats['size'];
   const fileSizeInKilobytes = fileSizeInBytes / 1000.0;
-  const maxSize = 150.0;
-  const isUnder = fileSizeInKilobytes <= maxSize;
+
+  const isUnder = fileSizeInKilobytes <= zipFileSizeLimit;
   const testFailed = !isUnder;
   loggingStream.write(`Running Zip Size Test : \n`);
   if (testFailed) {
-    loggingStream.write(`TEST FAILED  !! --------------- File size in KB ${fileSizeInKilobytes} is > ${maxSize} \n `);
+    loggingStream.write(`TEST FAILED  !! --------------- File size in KB ${fileSizeInKilobytes} is > ${zipFileSizeLimit} \n `);
   } else {
-    loggingStream.write(`  TEST PASSED *** File size in KB ${fileSizeInKilobytes} is <= ${maxSize} \n `);
+    loggingStream.write(`  TEST PASSED *** File size in KB ${fileSizeInKilobytes} is <= ${zipFileSizeLimit} \n `);
   }
   return {
     isUnder,
     fileSizeInBytes,
     fileSizeInKilobytes,
-    maxSize,
+    zipFileSizeLimit,
     testFailed
   };
 }
-function testZips(pathObj) {
+function testZips(pathObj,zipFileSizeLimit,  staticFileSizeLimit) {
   return new Promise(async (resolve, reject) => {
     const { finalRootPath, finalBannerPath, finalZipPath } = pathObj;
     const wstream = fs.createWriteStream(path.join(finalZipPath, 'zip_tests.log'));
@@ -250,7 +250,7 @@ function testZips(pathObj) {
     });
     const run = async (file) => {
       wstream.write(`BEGIN ALL TESTS ON Zip --- \n ${file}  `);
-      const sizeResults = testZipSize(file, wstream);
+      const sizeResults = testZipSize(file,zipFileSizeLimit, wstream);
       if (sizeResults.testFailed) failedFiles.push(file);
     };
     files.forEach(run);
@@ -272,7 +272,7 @@ function getBannerDimensions(filePath) {
   return { width, height };
 }
 // screenshots
-function MakeScreenshots(pathObj, aspectRatio) {
+function MakeScreenshots(pathObj, aspectRatio,  staticFileSizeLimit) {
   return new Promise(async (resolve, reject) => {
     const { finalRootPath, finalBannerPath, finalZipPath } = pathObj;
     let paths = await findAllBannerFolderRoots(finalZipPath);
@@ -282,7 +282,7 @@ function MakeScreenshots(pathObj, aspectRatio) {
           width: 1024,
           height: 728,
           show: false,
-          backgroundColor:"#FF0000",
+          backgroundColor: '#FF0000',
           webPreferences: {
             nodeIntegration: false,
             webSecurity: false,
@@ -296,14 +296,14 @@ function MakeScreenshots(pathObj, aspectRatio) {
       shotWindow.loadURL(slash(bannerURL));
       shotWindow.once('ready-to-show', (e) => {
         console.log('WINDOW SHOULD BE OPEN');
-        shotWindow.show();
-        shotWindow.focus();
+        //shotWindow.show();
+        //shotWindow.focus();
         shotWindow.capturePage()
           .then(img => {
             img = img.crop({
               x: 0,
               y: 0,
-              width: Math.round (dimensions.width * aspectRatio),
+              width: Math.round(dimensions.width * aspectRatio),
               height: Math.round(dimensions.height * aspectRatio)
             });
             img = img.resize({
@@ -311,7 +311,7 @@ function MakeScreenshots(pathObj, aspectRatio) {
               height: dimensions.height
             });
             const jpegPath = path.join(file.dir, file.base).replace('index.html', 'static.jpg');
-            const maxSize = 150.0;
+
             let compression = 80;
             const optimize = () => {
               const imgBuffer = img.toJPEG(compression);
@@ -319,12 +319,12 @@ function MakeScreenshots(pathObj, aspectRatio) {
               console.log('static saved', compression);
             };
             optimize();
-            while (fs.statSync(jpegPath)['size'] / 1000.0 > maxSize && compression > 15) {
+            while (fs.statSync(jpegPath)['size'] / 1000.0 > staticFileSizeLimit && compression > 15) {
               compression--;
               optimize();
             }
             console.log('static optimized');
-            //callback();
+            callback();
           });
       });
     };
@@ -350,7 +350,9 @@ export default (event, config) => {
       cssMinOption,
       optimizeImages,
       createZips,
-      devicePixelRatio
+      devicePixelRatio,
+      zipFileSizeLimit,
+      staticFileSizeLimit
     } = config;
     copySource(sourcePathText, outputPathText)
       .then(htmlMinOption === 'true' ? minifyHTML : nullPromise)
@@ -360,9 +362,11 @@ export default (event, config) => {
       .then(createZips === 'true' ? makeZips : nullPromise)
       .then(createZips === 'true' ? copyZips : nullPromise)
       .then(createZips === 'true' ? (pathObj) => {
-        return MakeScreenshots(pathObj, devicePixelRatio);
+        return MakeScreenshots(pathObj, devicePixelRatio, staticFileSizeLimit);
       } : nullPromise)
-      .then(createZips === 'true' ? testZips : nullPromise)
+      .then(createZips === 'true' ? (pathObj) => {
+        return testZips(pathObj,zipFileSizeLimit,  staticFileSizeLimit);
+      }  : nullPromise)
 
       //.then(createZips === 'true' ? cleanUp : nullPromise)
       .then(resolve);
