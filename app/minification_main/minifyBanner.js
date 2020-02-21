@@ -117,6 +117,9 @@ function tinifyImages(pathObj) {
       .then(() => resolve(pathObj));
   }));
 }
+function getClosetFolderFromPath(path: string) {
+  return path.split('/').slice(-1).pop();
+}
 // minification
 function makeZips(pathObj) {
   const { finalRootPath, finalBannerPath, finalZipPath } = pathObj;
@@ -124,7 +127,7 @@ function makeZips(pathObj) {
     let makeZip = async (bannerRootParse) => {
       await new Promise(((resolve1, reject1) => {
         const { dir, root, base, name, ext } = bannerRootParse;
-        const closestFolder = dir.split('/').slice(-1).pop();
+        const closestFolder = getClosetFolderFromPath(dir);
         const zipName = path.join(dir, `${closestFolder}.zip`);
         const output = fs.createWriteStream(zipName);
         const archive = archiver('zip', {
@@ -218,11 +221,10 @@ async function cleanUp(pathObj) {
   }));
 }
 // tests
-function testZipSize(filePath:String,zipFileSizeLimit:Number, loggingStream) {
+function testZipSize(filePath: String, zipFileSizeLimit: Number, loggingStream) {
   const stats = fs.statSync(filePath);
   const fileSizeInBytes = stats['size'];
   const fileSizeInKilobytes = fileSizeInBytes / 1000.0;
-
   const isUnder = fileSizeInKilobytes <= zipFileSizeLimit;
   const testFailed = !isUnder;
   loggingStream.write(`Running Zip Size Test : \n`);
@@ -239,7 +241,7 @@ function testZipSize(filePath:String,zipFileSizeLimit:Number, loggingStream) {
     testFailed
   };
 }
-function testZips(pathObj,zipFileSizeLimit,  staticFileSizeLimit) {
+function testZips(pathObj, zipFileSizeLimit, staticFileSizeLimit) {
   return new Promise(async (resolve, reject) => {
     const { finalRootPath, finalBannerPath, finalZipPath } = pathObj;
     const wstream = fs.createWriteStream(path.join(finalZipPath, 'zip_tests.log'));
@@ -250,7 +252,7 @@ function testZips(pathObj,zipFileSizeLimit,  staticFileSizeLimit) {
     });
     const run = async (file) => {
       wstream.write(`BEGIN ALL TESTS ON Zip --- \n ${file}  `);
-      const sizeResults = testZipSize(file,zipFileSizeLimit, wstream);
+      const sizeResults = testZipSize(file, zipFileSizeLimit, wstream);
       if (sizeResults.testFailed) failedFiles.push(file);
     };
     files.forEach(run);
@@ -272,7 +274,7 @@ function getBannerDimensions(filePath) {
   return { width, height };
 }
 // screenshots
-function MakeScreenshots(pathObj, aspectRatio,  staticFileSizeLimit) {
+function MakeScreenshots(pathObj, aspectRatio, staticFileSizeLimit) {
   return new Promise(async (resolve, reject) => {
     const { finalRootPath, finalBannerPath, finalZipPath } = pathObj;
     let paths = await findAllBannerFolderRoots(finalZipPath);
@@ -310,8 +312,8 @@ function MakeScreenshots(pathObj, aspectRatio,  staticFileSizeLimit) {
               width: dimensions.width,
               height: dimensions.height
             });
-            const jpegPath = path.join(file.dir, file.base).replace('index.html', 'static.jpg');
-
+            const closestFolder = getClosetFolderFromPath(file.dir);
+            const jpegPath = path.join(file.dir, `${closestFolder}.jpg`);
             let compression = 80;
             const optimize = () => {
               const imgBuffer = img.toJPEG(compression);
@@ -365,8 +367,8 @@ export default (event, config) => {
         return MakeScreenshots(pathObj, devicePixelRatio, staticFileSizeLimit);
       } : nullPromise)
       .then(createZips === 'true' ? (pathObj) => {
-        return testZips(pathObj,zipFileSizeLimit,  staticFileSizeLimit);
-      }  : nullPromise)
+        return testZips(pathObj, zipFileSizeLimit, staticFileSizeLimit);
+      } : nullPromise)
 
       //.then(createZips === 'true' ? cleanUp : nullPromise)
       .then(resolve);
