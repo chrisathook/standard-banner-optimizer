@@ -4,82 +4,14 @@ import moment from 'moment';
 import { BrowserWindow, ipcMain, NativeImage, Rectangle } from 'electron';
 import path from 'path';
 import glob from 'glob-promise';
-import tinify from 'tinify';
-import archiver from 'archiver';
 import deleteEmpty from 'delete-empty';
-import KEYS from '../constants/api_keys';
 import slash from 'slash';
 import eachLimit from 'async/eachLimit';
 import cheerio from 'cheerio';
 import { copySource } from './utils';
-import { minifyHTML, minifyJS, minifyCSS,tinifyImages } from './fileMinifiers';
-function getClosetFolderFromPath(path: string) {
-  return path.split('/').slice(-1).pop();
-}
+import { minifyHTML, minifyJS, minifyCSS, tinifyImages } from './fileMinifiers';
+import { makeZips } from './zipFunctions';
 // minification
-function makeZips(pathObj) {
-  const { finalRootPath, finalBannerPath, finalZipPath } = pathObj;
-  return new Promise(((resolve, reject) => {
-    let makeZip = async (bannerRootParse) => {
-      await new Promise(((resolve1, reject1) => {
-        const { dir, root, base, name, ext } = bannerRootParse;
-        const closestFolder = getClosetFolderFromPath(dir);
-        const zipName = path.join(dir, `${closestFolder}.zip`);
-        const output = fs.createWriteStream(zipName);
-        const archive = archiver('zip', {
-          zlib: { level: 9 } // Sets the compression level.
-        });
-        output.on('close', function() {
-          console.log(archive.pointer() + ' total bytes');
-          console.log('archiver has been finalized and the output file descriptor has closed.');
-          resolve1();
-        });
-        archive.on('warning', function(err) {
-          if (err.code === 'ENOENT') {
-            console.warn(err);
-          } else {
-            // throw error
-            throw err;
-          }
-        });
-        archive.on('error', function(err) {
-          throw err;
-        });
-        output.on('end', function() {
-          console.log('Data has been drained');
-        });
-        archive.pipe(output);
-        archive.glob(
-          path.join('**/*.{html,jpg,png,svg,js,css}'),
-          {
-            cwd: dir,
-            root: dir
-          });
-        archive.finalize();
-      }));
-    };
-    // find all banners
-    findAllBannerFolderRoots(finalBannerPath)
-      .then(paths => {
-        paths.forEach(makeZip);
-      })
-      .then(() => resolve(pathObj));
-  }));
-}
-/**
- * takes in path and finds all banner roots assuming index.html file
- * @param targetPath
- * @returns {Promise<object[]>}
- */
-function findAllBannerFolderRoots(targetPath) {
-  return new Promise((resolve, reject) => {
-    glob(path.join(targetPath, '**/index.html'))
-      .then(files => {
-        return files.map(path.parse);
-      })
-      .then((paths: object[]) => resolve(paths));
-  });
-}
 function copyZips(pathObj) {
   const { finalRootPath, finalBannerPath, finalZipPath } = pathObj;
   return new Promise((resolve => {
@@ -258,15 +190,21 @@ export default async (event, config) => {
   let finalRootPath = path.join(outputPathText, timestamp);
   let finalBannerSourcePath = path.join(finalRootPath, 'source');
   let finalZipPath = path.join(finalRootPath, 'final_zips');
-  let jobVars = { timestamp, finalRootPath, finalBannerSourcePath, finalZipPath };
+  let jobVars = {
+    timestamp,
+    finalRootPath,
+    finalBannerSourcePath,
+    finalZipPath
+  };
   await copySource(sourcePathText, finalBannerSourcePath);
   htmlMinOption === 'true' ? await minifyHTML(finalBannerSourcePath) : await nullPromise();
   jsMinOption === 'true' ? await minifyJS(finalBannerSourcePath) : await nullPromise();
   cssMinOption === 'true' ? await minifyCSS(finalBannerSourcePath) : await nullPromise();
-  optimizeImages === 'true' ? await tinifyImages (finalBannerSourcePath) : await nullPromise();
+  optimizeImages === 'true' ? await tinifyImages(finalBannerSourcePath) : await nullPromise();
+  createZips === 'true' ? await makeZips(finalBannerSourcePath) :await nullPromise();
 
   /*.then()
-  .then(createZips === 'true' ? makeZips : nullPromise)
+  .then()
   .then(createZips === 'true' ? copyZips : nullPromise)
   .then(createZips === 'true' ? (pathObj) => {
     return MakeScreenshots(pathObj, devicePixelRatio, staticFileSizeLimit);

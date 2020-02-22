@@ -1,10 +1,9 @@
 import moment from 'moment';
-import path from "path";
+import path from 'path';
 import fs from 'fs-extra';
-
-export const copySource =(sourcePath, destPath)=> {
+import glob from 'glob-promise';
+export const copySource = (sourcePath, destPath) => {
   return new Promise(((resolve, reject) => {
-
     try {
       fs.copySync(sourcePath, destPath);
       //console.log('success!');
@@ -14,4 +13,25 @@ export const copySource =(sourcePath, destPath)=> {
     }
     resolve();
   }));
+};
+/**
+ * takes in path and finds all banner roots assuming index.html file
+ * @param targetPath {string}
+ * @returns {Promise<object[]>}
+ */
+export const findAllBannerFolderRoots = (targetPath) => {
+  return new Promise((resolve, reject) => {
+    glob(path.join(targetPath, '**/index.html'))
+      .then(files => {
+        resolve(files.map(path.parse));
+      });
+  });
+};
+/**
+ *
+ * @param path {string}
+ * @returns {string}
+ */
+export const getClosetFolderFromPath = (path: string) => {
+  return path.split('/').slice(-1).pop();
 };
