@@ -54,7 +54,7 @@ export const minifyJS = (operatingDirectory) => {
 };
 export const minifyCSS = (operatingDirectory) => {
   return new Promise(((resolve, reject) => {
-    let run =  (file, callback) => {
+    let run = (file, callback) => {
       //console.log('!!!', file);
       let data = fs.readFileSync(file, 'utf8');
       let css = new CleanCSS({ returnPromise: true });
@@ -76,25 +76,22 @@ export const minifyCSS = (operatingDirectory) => {
 };
 export const tinifyImages = (operatingDirectory) => {
   tinify.key = KEYS.TINIFY;
-  // console.log('!!', rootPath);
   return new Promise(((resolve, reject) => {
-    let run = async (file) => {
+    let run = (file, callback) => {
       // console.log('!!!', file);
-      let data = await fs.readFile(file);
-      data = await new Promise(((resolve1, reject1) => {
-        tinify.fromBuffer(data).toBuffer((err, resultData) => {
-          if (err) {
-            throw err;
-          }
-          resolve1(resultData);
-        });
-      }));
-      await fs.writeFile(file, data);
+      let data = fs.readFileSync(file);
+      tinify.fromBuffer(data).toBuffer((err, resultData) => {
+        if (err) {
+          throw err;
+        }
+        fs.writeFileSync(file, resultData);
+        callback();
+      });
     };
     glob(path.join(operatingDirectory, '**/*.{jpg,png}'))
       .then(files => {
-        files.forEach(run);
+        return eachLimit(files, 1, run);
       })
-      .then(() => resolve());
+      .then(resolve);
   }));
 };

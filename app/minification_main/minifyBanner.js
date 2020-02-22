@@ -12,7 +12,7 @@ import slash from 'slash';
 import eachLimit from 'async/eachLimit';
 import cheerio from 'cheerio';
 import { copySource } from './utils';
-import { minifyHTML, minifyJS, minifyCSS } from './fileMinifiers';
+import { minifyHTML, minifyJS, minifyCSS,tinifyImages } from './fileMinifiers';
 function getClosetFolderFromPath(path: string) {
   return path.split('/').slice(-1).pop();
 }
@@ -233,11 +233,12 @@ function MakeScreenshots(pathObj, aspectRatio, staticFileSizeLimit) {
 function nullPromise(...args) {
   return Promise.resolve(...args);
 }
+/*
 tinify.key = KEYS.TINIFY;
 tinify.validate(function(err) {
   if (err) throw err;
   console.log('!!!! API KEY GOOD');
-});
+});*/
 export default async (event, config) => {
   // vars from UI
   const {
@@ -255,14 +256,16 @@ export default async (event, config) => {
   // generated vars
   let timestamp = moment().format('YYYYMMDD_HHmmSS');
   let finalRootPath = path.join(outputPathText, timestamp);
-  let finalBannerPath = path.join(finalRootPath, 'source');
+  let finalBannerSourcePath = path.join(finalRootPath, 'source');
   let finalZipPath = path.join(finalRootPath, 'final_zips');
-  let jobVars = { timestamp, finalRootPath, finalBannerPath, finalZipPath };
-  await copySource(sourcePathText, finalBannerPath);
-  htmlMinOption === 'true' ? await minifyHTML(finalBannerPath) : await nullPromise();
-  jsMinOption === 'true' ? await minifyJS(finalBannerPath) : await nullPromise();
-  cssMinOption === 'true' ? await minifyCSS(finalBannerPath) : await nullPromise();
-  /*.then(optimizeImages === 'true' ? tinifyImages : nullPromise)
+  let jobVars = { timestamp, finalRootPath, finalBannerSourcePath, finalZipPath };
+  await copySource(sourcePathText, finalBannerSourcePath);
+  htmlMinOption === 'true' ? await minifyHTML(finalBannerSourcePath) : await nullPromise();
+  jsMinOption === 'true' ? await minifyJS(finalBannerSourcePath) : await nullPromise();
+  cssMinOption === 'true' ? await minifyCSS(finalBannerSourcePath) : await nullPromise();
+  optimizeImages === 'true' ? await tinifyImages (finalBannerSourcePath) : await nullPromise();
+
+  /*.then()
   .then(createZips === 'true' ? makeZips : nullPromise)
   .then(createZips === 'true' ? copyZips : nullPromise)
   .then(createZips === 'true' ? (pathObj) => {
