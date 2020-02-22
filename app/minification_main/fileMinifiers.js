@@ -95,3 +95,4 @@ export const tinifyImages = (operatingDirectory) => {
       .then(resolve);
   }));
 };
+

@@ -10,20 +10,9 @@ import eachLimit from 'async/eachLimit';
 import cheerio from 'cheerio';
 import { copySource } from './utils';
 import { minifyHTML, minifyJS, minifyCSS, tinifyImages } from './fileMinifiers';
-import { makeZips } from './zipFunctions';
+import { makeZips,copyZips } from './zipFunctions';
 // minification
-function copyZips(pathObj) {
-  const { finalRootPath, finalBannerPath, finalZipPath } = pathObj;
-  return new Promise((resolve => {
-    setTimeout(() => {
-      fs.mkdirSync(finalZipPath);
-      fs.copySync(finalBannerPath, finalZipPath);
-      setTimeout(() => {
-        resolve(pathObj);
-      }, 500);
-    }, 500);
-  }));
-}
+
 async function cleanUp(pathObj) {
   const { finalRootPath, finalBannerPath, finalZipPath } = pathObj;
   await new Promise((resolve => {
@@ -202,10 +191,10 @@ export default async (event, config) => {
   cssMinOption === 'true' ? await minifyCSS(finalBannerSourcePath) : await nullPromise();
   optimizeImages === 'true' ? await tinifyImages(finalBannerSourcePath) : await nullPromise();
   createZips === 'true' ? await makeZips(finalBannerSourcePath) :await nullPromise();
-
+  createZips === 'true' ? await copyZips (finalBannerSourcePath,finalZipPath) :await nullPromise();
   /*.then()
   .then()
-  .then(createZips === 'true' ? copyZips : nullPromise)
+  .then()
   .then(createZips === 'true' ? (pathObj) => {
     return MakeScreenshots(pathObj, devicePixelRatio, staticFileSizeLimit);
   } : nullPromise)

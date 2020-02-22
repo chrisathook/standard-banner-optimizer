@@ -49,3 +49,15 @@ export const makeZips = (operatingDirectory) => {
       .then(resolve);
   }));
 };
+export const copyZips = (sourcePath, destPath) => {
+  return new Promise((resolve => {
+    setTimeout(() => {
+      fs.mkdirSync(destPath);
+      fs.copySync(sourcePath, destPath);
+      // give OS time to finish updating file system
+      setTimeout(() => {
+        resolve();
+      }, 500);
+    }, 500);
+  }));
+};
