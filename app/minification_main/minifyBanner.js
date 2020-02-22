@@ -11,6 +11,7 @@ import cheerio from 'cheerio';
 import { copySource } from './utils';
 import { minifyHTML, minifyJS, minifyCSS, tinifyImages } from './fileMinifiers';
 import { makeZips,copyZips } from './zipFunctions';
+import {MakeScreenshots} from './screenshotFunctions';
 // minification
 
 async function cleanUp(pathObj) {
@@ -81,76 +82,9 @@ function testZips(pathObj, zipFileSizeLimit, staticFileSizeLimit) {
     wstream.end();
   });
 }
-function getBannerDimensions(filePath) {
-  let fileData = fs.readFileSync(filePath, 'utf8');
-  const $ = cheerio.load(fileData);
-  let sizing: string = $(`meta[name='ad.size']`).attr('content');
-  const width = Number(sizing.split(',')[0].split('=')[1]);
-  const height = Number(sizing.split(',')[1].split('=')[1]);
-  console.log(width, height);
-  return { width, height };
-}
+
 // screenshots
-function MakeScreenshots(pathObj, aspectRatio, staticFileSizeLimit) {
-  return new Promise(async (resolve, reject) => {
-    const { finalRootPath, finalBannerPath, finalZipPath } = pathObj;
-    let paths = await findAllBannerFolderRoots(finalZipPath);
-    let run = (file, callback) => {
-      const shotWindow = new BrowserWindow(
-        {
-          width: 1024,
-          height: 728,
-          show: false,
-          backgroundColor: '#FF0000',
-          webPreferences: {
-            nodeIntegration: false,
-            webSecurity: false,
-            allowRunningInsecureContent: true,
-            frame: false,
-            devTools: false
-          }
-        });
-      const bannerURL = path.join(file.dir, file.base);
-      const dimensions = getBannerDimensions(bannerURL);
-      shotWindow.loadURL(slash(bannerURL));
-      shotWindow.once('ready-to-show', (e) => {
-        console.log('WINDOW SHOULD BE OPEN');
-        //shotWindow.show();
-        //shotWindow.focus();
-        shotWindow.capturePage()
-          .then(img => {
-            img = img.crop({
-              x: 0,
-              y: 0,
-              width: Math.round(dimensions.width * aspectRatio),
-              height: Math.round(dimensions.height * aspectRatio)
-            });
-            img = img.resize({
-              width: dimensions.width,
-              height: dimensions.height
-            });
-            const closestFolder = getClosetFolderFromPath(file.dir);
-            const jpegPath = path.join(file.dir, `${closestFolder}.jpg`);
-            let compression = 80;
-            const optimize = () => {
-              const imgBuffer = img.toJPEG(compression);
-              fs.writeFileSync(jpegPath, imgBuffer);
-              console.log('static saved', compression);
-            };
-            optimize();
-            while (fs.statSync(jpegPath)['size'] / 1000.0 > staticFileSizeLimit && compression > 15) {
-              compression--;
-              optimize();
-            }
-            console.log('static optimized');
-            callback();
-          });
-      });
-    };
-    await eachLimit(paths, 1, run);
-    resolve(pathObj);
-  });
-}
+
 function nullPromise(...args) {
   return Promise.resolve(...args);
 }
@@ -192,12 +126,11 @@ export default async (event, config) => {
   optimizeImages === 'true' ? await tinifyImages(finalBannerSourcePath) : await nullPromise();
   createZips === 'true' ? await makeZips(finalBannerSourcePath) :await nullPromise();
   createZips === 'true' ? await copyZips (finalBannerSourcePath,finalZipPath) :await nullPromise();
+  createZips === 'true' ? await MakeScreenshots(finalZipPath, devicePixelRatio, staticFileSizeLimit) :await nullPromise();
   /*.then()
   .then()
   .then()
-  .then(createZips === 'true' ? (pathObj) => {
-    return MakeScreenshots(pathObj, devicePixelRatio, staticFileSizeLimit);
-  } : nullPromise)
+  .then()
   .then(createZips === 'true' ? (pathObj) => {
     return testZips(pathObj, zipFileSizeLimit, staticFileSizeLimit);
   } : nullPromise)
