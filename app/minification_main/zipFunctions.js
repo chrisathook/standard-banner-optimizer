@@ -2,6 +2,7 @@ import path from 'path';
 import fs from 'fs-extra';
 import archiver from 'archiver';
 import eachLimit from 'async/eachLimit';
+import delay from 'delay';
 import { findAllBannerFolderRoots, getClosetFolderFromPath } from './utils';
 const makeZip = (bannerRootParse, callback) => {
   const { dir, root, base, name, ext } = bannerRootParse;
@@ -39,25 +40,14 @@ const makeZip = (bannerRootParse, callback) => {
     });
   archive.finalize();
 };
-export const makeZips = (operatingDirectory) => {
-  return new Promise(((resolve, reject) => {
-    // find all banners
-    findAllBannerFolderRoots(operatingDirectory)
-      .then(files => {
-        return eachLimit(files, 1, makeZip);
-      })
-      .then(resolve);
-  }));
+export const makeZips = async (operatingDirectory) => {
+  // find all banners
+  let files = await findAllBannerFolderRoots(operatingDirectory);
+  await eachLimit(files, 1, makeZip);
 };
-export const copyZips = (sourcePath, destPath) => {
-  return new Promise((resolve => {
-    setTimeout(() => {
-      fs.mkdirSync(destPath);
-      fs.copySync(sourcePath, destPath);
-      // give OS time to finish updating file system
-      setTimeout(() => {
-        resolve();
-      }, 500);
-    }, 500);
-  }));
+export const copyZips = async (sourcePath, destPath) => {
+  await delay(500);
+  fs.mkdirSync(destPath);
+  fs.copySync(sourcePath, destPath);
+  await delay(500);
 };

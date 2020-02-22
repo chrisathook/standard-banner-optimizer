@@ -270,6 +270,7 @@
     "connected-react-router": "^6.6.1",
     "copyfiles": "^2.2.0",
     "core-js": "^3.5.0",
+    "delay": "^4.3.0",
     "delete-empty": "^3.0.0",
     "devtron": "^1.4.0",
     "electron-debug": "^3.0.1",
