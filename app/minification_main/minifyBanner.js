@@ -12,6 +12,7 @@ import slash from 'slash';
 import eachLimit from 'async/eachLimit';
 import cheerio from 'cheerio';
 import { copySource } from './utils';
+import { minifyHTML, minifyJS, minifyCSS } from './fileMinifiers';
 function getClosetFolderFromPath(path: string) {
   return path.split('/').slice(-1).pop();
 }
@@ -258,19 +259,18 @@ export default async (event, config) => {
   let finalZipPath = path.join(finalRootPath, 'final_zips');
   let jobVars = { timestamp, finalRootPath, finalBannerPath, finalZipPath };
   await copySource(sourcePathText, finalBannerPath);
-    /*
-    .then(htmlMinOption === 'true' ? minifyHTML : nullPromise)
-    .then(jsMinOption === 'true' ? minifyJS : nullPromise)
-    .then(cssMinOption === 'true' ? minifyCSS : nullPromise)
-    .then(optimizeImages === 'true' ? tinifyImages : nullPromise)
-    .then(createZips === 'true' ? makeZips : nullPromise)
-    .then(createZips === 'true' ? copyZips : nullPromise)
-    .then(createZips === 'true' ? (pathObj) => {
-      return MakeScreenshots(pathObj, devicePixelRatio, staticFileSizeLimit);
-    } : nullPromise)
-    .then(createZips === 'true' ? (pathObj) => {
-      return testZips(pathObj, zipFileSizeLimit, staticFileSizeLimit);
-    } : nullPromise)
-  .then(createZips === 'true' ? cleanUp : nullPromise)*/
+  htmlMinOption === 'true' ? await minifyHTML(finalBannerPath) : await nullPromise();
+  jsMinOption === 'true' ? await minifyJS(finalBannerPath) : await nullPromise();
+  cssMinOption === 'true' ? await minifyCSS(finalBannerPath) : await nullPromise();
+  /*.then(optimizeImages === 'true' ? tinifyImages : nullPromise)
+  .then(createZips === 'true' ? makeZips : nullPromise)
+  .then(createZips === 'true' ? copyZips : nullPromise)
+  .then(createZips === 'true' ? (pathObj) => {
+    return MakeScreenshots(pathObj, devicePixelRatio, staticFileSizeLimit);
+  } : nullPromise)
+  .then(createZips === 'true' ? (pathObj) => {
+    return testZips(pathObj, zipFileSizeLimit, staticFileSizeLimit);
+  } : nullPromise)
+ .then(createZips === 'true' ? cleanUp : nullPromise)*/
   return '';
 };

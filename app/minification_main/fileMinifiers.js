@@ -6,11 +6,13 @@ import * as JSMinifier from 'uglify-js';
 import CleanCSS from 'clean-css';
 import tinify from 'tinify';
 import KEYS from '../constants/api_keys';
+import eachLimit from 'async/eachLimit';
+//
 export const minifyHTML = (operatingDirectory) => {
   return new Promise(((resolve, reject) => {
-    let run = async (file) => {
+    let run = (file, callback) => {
       //console.log('!!!', file);
-      let data = await fs.readFile(file, 'utf8');
+      let data = fs.readFileSync(file, 'utf8');
       data = HTMLMinifier.minify(data, {
         collapseWhitespace: true,
         conservativeCollapse: true,
@@ -19,50 +21,57 @@ export const minifyHTML = (operatingDirectory) => {
         minifyJS: true,
         removeComments: true
       });
-      await fs.writeFile(file, data);
+      fs.writeFileSync(file, data);
+      callback();
     };
     glob(path.join(operatingDirectory, '**/*.html'))
       .then(files => {
-        files.forEach(run);
+        return eachLimit(files, 1, run);
       })
-      .then(() => resolve());
+      .then(resolve);
   }));
 };
 export const minifyJS = (operatingDirectory) => {
   return new Promise(((resolve, reject) => {
-    let run = async (file) => {
-      // console.log('!!!', file);
-      let data = await fs.readFile(file, 'utf8');
-      data = JSMinifier.minify(data, {
+    let run = (file, callback) => {
+      //console.log('!!!', file);
+      let data = fs.readFileSync(file, 'utf8');
+      let data2 = JSMinifier.minify(data, {
         compress: {
           drop_console: true,
           keep_fnames: true
         }
       }).code;
-      await fs.writeFile(file, data);
+      fs.writeFileSync(file, data2);
+      callback();
     };
     glob(path.join(operatingDirectory, '**/*.js'))
       .then(files => {
-        files.forEach(run);
+        return eachLimit(files, 1, run);
       })
-      .then(() => resolve());
+      .then(resolve);
   }));
 };
 export const minifyCSS = (operatingDirectory) => {
   return new Promise(((resolve, reject) => {
-    let run = async (file) => {
+    let run =  (file, callback) => {
       //console.log('!!!', file);
-      let data = await fs.readFile(file, 'utf8');
+      let data = fs.readFileSync(file, 'utf8');
       let css = new CleanCSS({ returnPromise: true });
-      data = await css.minify(data);
-      data = data.styles;
-      await fs.writeFile(file, data);
+      css.minify(data)
+        .then(result => {
+          return result.styles;
+        })
+        .then((result) => {
+          fs.writeFileSync(file, result);
+          callback();
+        });
     };
     glob(path.join(operatingDirectory, '**/*.css'))
       .then(files => {
-        files.forEach(run);
+        return eachLimit(files, 1, run);
       })
-      .then(() => resolve());
+      .then(resolve);
   }));
 };
 export const tinifyImages = (operatingDirectory) => {
