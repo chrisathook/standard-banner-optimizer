@@ -10,76 +10,13 @@ import { copySource, STEP_ERROR, STEP_SUCCESS } from './utils';
 import { minifyHTML, minifyJS, minifyCSS, tinifyImages } from './fileMinifiers';
 import { makeZips, copyZips } from './zipFunctions';
 import { MakeScreenshots } from './screenshotFunctions';
+import {testZips} from './testing';
 import ipcEvents from '../constants/ipc_events';
 // minification
-async function cleanUp(pathObj) {
-  const { finalRootPath, finalBannerPath, finalZipPath } = pathObj;
-  await new Promise((resolve => {
-    glob(path.join(finalZipPath, '**/*.{html,jpg,png,svg,js,css}'))
-      .then(files => {
-        files.forEach(file => {
-          //console.log('111 delete file', file);
-          fs.removeSync(file);
-        });
-      })
-      .then(resolve);
-  }));
-  await deleteEmpty(finalZipPath);
-  await new Promise((resolve => {
-    glob(path.join(finalBannerPath, '**/*.zip'))
-      .then(files => {
-        files.forEach(file => {
-          //console.log('111 delete file', file);
-          fs.removeSync(file);
-        });
-      })
-      .then(resolve);
-  }));
-}
+
 // tests
-function testZipSize(filePath: String, zipFileSizeLimit: Number, loggingStream) {
-  const stats = fs.statSync(filePath);
-  const fileSizeInBytes = stats['size'];
-  const fileSizeInKilobytes = fileSizeInBytes / 1000.0;
-  const isUnder = fileSizeInKilobytes <= zipFileSizeLimit;
-  const testFailed = !isUnder;
-  loggingStream.write(`Running Zip Size Test : \n`);
-  if (testFailed) {
-    loggingStream.write(`TEST FAILED  !! --------------- File size in KB ${fileSizeInKilobytes} is > ${zipFileSizeLimit} \n `);
-  } else {
-    loggingStream.write(`  TEST PASSED *** File size in KB ${fileSizeInKilobytes} is <= ${zipFileSizeLimit} \n `);
-  }
-  return {
-    isUnder,
-    fileSizeInBytes,
-    fileSizeInKilobytes,
-    zipFileSizeLimit,
-    testFailed
-  };
-}
-function testZips(pathObj, zipFileSizeLimit, staticFileSizeLimit) {
-  return new Promise(async (resolve, reject) => {
-    const { finalRootPath, finalBannerPath, finalZipPath } = pathObj;
-    const wstream = fs.createWriteStream(path.join(finalZipPath, 'zip_tests.log'));
-    const files = await glob(path.join(finalZipPath, '**/*.zip'));
-    const failedFiles = [];
-    wstream.on('finish', function() {
-      resolve(pathObj);
-    });
-    const run = async (file) => {
-      wstream.write(`BEGIN ALL TESTS ON Zip --- \n ${file}  `);
-      const sizeResults = testZipSize(file, zipFileSizeLimit, wstream);
-      if (sizeResults.testFailed) failedFiles.push(file);
-    };
-    files.forEach(run);
-    wstream.write(`ZIP TESTING COMPLETE __________________________________ \n `);
-    wstream.write(`THE FOLLOWING FILES HAVE FAILED TESTS \n `);
-    failedFiles.forEach(file => {
-      wstream.write(`FAILED ${file} \n `);
-    });
-    wstream.end();
-  });
-}
+
+
 // screenshots
 function nullPromise(...args) {
   return Promise.resolve(...args);
@@ -117,8 +54,8 @@ export default async (event, config) => {
   };
   const logger = winston.createLogger({
     level: 'info',
-    format: winston.format.json(),
-    defaultMeta: { service: 'user-service' },
+    format: winston.format.simple(),
+
     transports: [
       new winston.transports.File({
         filename: path.join(finalZipPath, 'error.log'),
@@ -144,7 +81,7 @@ export default async (event, config) => {
       logger.info (statusObject.message);
     }
     if (statusObject.status === STEP_ERROR) {
-      event.reply(ipcEvents.MINIFICATION_STATUS_UPDATE, statusObject.message);
+      event.reply(ipcEvents.MINIFICATION_STATUS_UPDATE, statusObject.message +' Check Log File');
       logger.error (statusObject.message,statusObject.data);
     }
   };
@@ -167,11 +104,8 @@ export default async (event, config) => {
   processLogging (status);
   status = createZips === 'true' ? await MakeScreenshots(finalZipPath, devicePixelRatio, staticFileSizeLimit) : await nullPromise();
   processLogging (status);
-  /*
-  .then(createZips === 'true' ? (pathObj) => {
-    return testZips(pathObj, zipFileSizeLimit, staticFileSizeLimit);
-  } : nullPromise)
-  .then(createZips === 'true' ? cleanUp : nullPromise)*/
+  status = createZips === 'true' ? await testZips(finalZipPath, zipFileSizeLimit) : await nullPromise();
+  processLogging (status);
   return '';
 };
 

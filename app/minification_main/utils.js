@@ -3,6 +3,7 @@ import path from 'path';
 import fs from 'fs-extra';
 import glob from 'glob-promise';
 import cheerio from 'cheerio';
+import deleteEmpty from 'delete-empty';
 export const copySource = (sourcePath, destPath) => {
   return new Promise(((resolve, reject) => {
     try {
@@ -54,4 +55,17 @@ export const reportingFactory = (status: string, message: string = '', data: Obj
     data,
     isError: status !== STEP_SUCCESS
   };
+};
+export const cleanUp = async (finalBannerPath, finalZipPath) => {
+  let files = await glob(path.join(finalZipPath, '**/*.{html,jpg,png,svg,js,css}'));
+  files.forEach(file => {
+    //console.log('111 delete file', file);
+    fs.removeSync(file);
+  });
+  await deleteEmpty(finalZipPath);
+  let files2 = await glob(path.join(finalBannerPath, '**/*.zip'));
+  files2.forEach(file => {
+    //console.log('111 delete file', file);
+    fs.removeSync(file);
+  });
 };
