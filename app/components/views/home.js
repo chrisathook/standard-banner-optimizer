@@ -1,5 +1,5 @@
 // @flow
-import React, { useState, useContext, useEffect, Fragment } from 'react';
+import React, { useState, useContext, useEffect, Fragment,useRef } from 'react';
 import { Context } from '../../store/Store';
 import * as ACTIONS from '../../store/actions/actions';
 import { remote, ipcRenderer } from 'electron';
@@ -20,14 +20,27 @@ const Home = () => {
     return !!(winValidator(path) || osxValidator(path));
   };
   // effects
+
+  let ipcMessagelistener = (event, message) => {
+    setStatusText(message +"\n" + prevCountRef.current);
+  };
+
+  const prevCountRef = useRef();
+
+  useEffect(() => {
+
+    prevCountRef.current = statusText;
+
+  },[statusText]);
+
   useEffect(() => {
     formDispatch(ACTIONS.window_aspect_ratio_submit(window.devicePixelRatio));
-    let listener = (event, arg) => {
-      setStatusText('minification complete');
-    };
-    ipcRenderer.on(ipcEvents.END_MINIFICATION, listener);
+
+    ipcRenderer.on(ipcEvents.MINIFICATION_STATUS_UPDATE, ipcMessagelistener);
+    ipcRenderer.on(ipcEvents.END_MINIFICATION, ipcMessagelistener);
     return () => {
-      ipcRenderer.removeListener(ipcEvents.END_MINIFICATION, listener);
+      ipcRenderer.removeListener(ipcEvents.END_MINIFICATION, ipcMessagelistener  );
+      ipcRenderer.removeListener(ipcEvents.MINIFICATION_STATUS_UPDATE, ipcMessagelistener  );
     };
   }, []);
   // handlers
@@ -46,7 +59,7 @@ const Home = () => {
       setStatusText('Your Source and Output paths can\'t be equal');
       return;
     }
-    setStatusText('Processing');
+
     ipcRenderer.send(ipcEvents.START_MINIFICATION, formState);
   };
   const handleInputSource = (event) => {

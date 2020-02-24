@@ -10,6 +10,7 @@ import { copySource } from './utils';
 import { minifyHTML, minifyJS, minifyCSS, tinifyImages } from './fileMinifiers';
 import { makeZips, copyZips } from './zipFunctions';
 import { MakeScreenshots } from './screenshotFunctions';
+import ipcEvents from '../constants/ipc_events';
 // minification
 async function cleanUp(pathObj) {
   const { finalRootPath, finalBannerPath, finalZipPath } = pathObj;
@@ -129,8 +130,8 @@ export default async (event, config) => {
   logger.add(new winston.transports.Console({
     format: winston.format.simple()
   }));
-  logger.info('starting process');
 
+  event.reply(ipcEvents.MINIFICATION_STATUS_UPDATE, 'Starting Minification');
   let status = await copySource(sourcePathText, finalBannerSourcePath);
   status =  htmlMinOption === 'true' ? await minifyHTML(finalBannerSourcePath) : await nullPromise();
   status =  jsMinOption === 'true' ? await minifyJS(finalBannerSourcePath) : await nullPromise();
