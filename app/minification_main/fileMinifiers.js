@@ -8,52 +8,42 @@ import tinify from 'tinify';
 import KEYS from '../constants/api_keys';
 import eachLimit from 'async/eachLimit';
 //
-export const minifyHTML = (operatingDirectory) => {
-  return new Promise(((resolve, reject) => {
-    let run = (file, callback) => {
-      //console.log('!!!', file);
-      let data = fs.readFileSync(file, 'utf8');
-      data = HTMLMinifier.minify(data, {
-        collapseWhitespace: true,
-        conservativeCollapse: true,
-        html5: true,
-        minifyCSS: true,
-        minifyJS: true,
-        removeComments: true
-      });
-      fs.writeFileSync(file, data);
-      callback();
-    };
-    glob(path.join(operatingDirectory, '**/*.html'))
-      .then(files => {
-        return eachLimit(files, 1, run);
-      })
-      .then(resolve);
-  }));
+export const minifyHTML = async (operatingDirectory) => {
+  let run = (file, callback) => {
+    //console.log('!!!', file);
+    let data = fs.readFileSync(file, 'utf8');
+    data = HTMLMinifier.minify(data, {
+      collapseWhitespace: true,
+      conservativeCollapse: true,
+      html5: true,
+      minifyCSS: true,
+      minifyJS: true,
+      removeComments: true
+    });
+    fs.writeFileSync(file, data);
+    callback();
+  };
+  let files = await glob(path.join(operatingDirectory, '**/*.html'));
+  await eachLimit(files, 1, run);
 };
-export const minifyJS = (operatingDirectory) => {
-  return new Promise(((resolve, reject) => {
-    let run = (file, callback) => {
-      //console.log('!!!', file);
-      let data = fs.readFileSync(file, 'utf8');
-      let data2 = JSMinifier.minify(data, {
-        compress: {
-          drop_console: true,
-          keep_fnames: true
-        }
-      }).code;
-      fs.writeFileSync(file, data2);
-      callback();
-    };
-    glob(path.join(operatingDirectory, '**/*.js'))
-      .then(files => {
-        return eachLimit(files, 1, run);
-      })
-      .then(resolve);
-  }));
+export const minifyJS = async (operatingDirectory) => {
+  let run = (file, callback) => {
+    //console.log('!!!', file);
+    let data = fs.readFileSync(file, 'utf8');
+    let data2 = JSMinifier.minify(data, {
+      compress: {
+        drop_console: true,
+        keep_fnames: true
+      }
+    }).code;
+    fs.writeFileSync(file, data2);
+    callback();
+  };
+  let files = glob(path.join(operatingDirectory, '**/*.js'));
+  await eachLimit(files, 1, run);
 };
-export const minifyCSS = (operatingDirectory) => {
-  return new Promise(((resolve, reject) => {
+export const minifyCSS = async (operatingDirectory) => {
+
     let run = (file, callback) => {
       //console.log('!!!', file);
       let data = fs.readFileSync(file, 'utf8');
@@ -67,16 +57,13 @@ export const minifyCSS = (operatingDirectory) => {
           callback();
         });
     };
-    glob(path.join(operatingDirectory, '**/*.css'))
-      .then(files => {
-        return eachLimit(files, 1, run);
-      })
-      .then(resolve);
-  }));
+  let files = await glob(path.join(operatingDirectory, '**/*.css'));
+      await eachLimit(files, 1, run);
+
 };
-export const tinifyImages = (operatingDirectory) => {
+export const tinifyImages = async (operatingDirectory) => {
   tinify.key = KEYS.TINIFY;
-  return new Promise(((resolve, reject) => {
+
     let run = (file, callback) => {
       // console.log('!!!', file);
       let data = fs.readFileSync(file);
@@ -88,11 +75,8 @@ export const tinifyImages = (operatingDirectory) => {
         callback();
       });
     };
-    glob(path.join(operatingDirectory, '**/*.{jpg,png}'))
-      .then(files => {
-        return eachLimit(files, 1, run);
-      })
-      .then(resolve);
-  }));
+  let files = await glob(path.join(operatingDirectory, '**/*.{jpg,png}'))
+  await eachLimit(files, 1, run);
+
 };
 
