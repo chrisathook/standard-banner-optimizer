@@ -6,9 +6,12 @@ import eachLimit from 'async/eachLimit';
 import {
   findAllBannerFolderRoots,
   getBannerDimensions,
-  getClosetFolderFromPath
+  getClosetFolderFromPath, reportingFactory, STEP_ERROR, STEP_SUCCESS
 } from './utils';
-const run = (file: object, aspectRatio: Number, staticFileSizeLimit: Number, callback: Function) => {
+const run = (file: object,
+             aspectRatio: Number,
+             staticFileSizeLimit: Number,
+             callback: Function) => {
 
   const {dir, base} = file;
 
@@ -64,9 +67,17 @@ const run = (file: object, aspectRatio: Number, staticFileSizeLimit: Number, cal
   });
   shotWindow.loadURL(slash(bannerURL));
 };
+// exports
 export const MakeScreenshots = async (operatingDirectory, aspectRatio, staticFileSizeLimit) => {
   let paths = await findAllBannerFolderRoots(operatingDirectory);
-  await eachLimit(paths, 1, (file, callback) => {
-    run(file, aspectRatio, staticFileSizeLimit, callback);
-  });
+
+  try {
+    await eachLimit(paths, 1, (file, callback) => {
+      run(file, aspectRatio, staticFileSizeLimit, callback);
+    });
+  }catch (err) {
+    return reportingFactory(STEP_ERROR, 'ERROR MAKING SCREENSHOTS',err);
+  }
+  return reportingFactory(STEP_SUCCESS, 'SCREENSHOTS MADE');
+
 };

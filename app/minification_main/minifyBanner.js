@@ -6,7 +6,7 @@ import path from 'path';
 import glob from 'glob-promise';
 import deleteEmpty from 'delete-empty';
 import winston from 'winston';
-import { copySource } from './utils';
+import { copySource, STEP_ERROR, STEP_SUCCESS } from './utils';
 import { minifyHTML, minifyJS, minifyCSS, tinifyImages } from './fileMinifiers';
 import { makeZips, copyZips } from './zipFunctions';
 import { MakeScreenshots } from './screenshotFunctions';
@@ -131,23 +131,42 @@ export default async (event, config) => {
     format: winston.format.simple()
   }));
 
+
+  const processLogging = (statusObject:Object = null,message:string='') =>{
+
+    if (statusObject===null) {
+      logger.info (message);
+      return;
+    }
+
+    if (statusObject.status === STEP_SUCCESS) {
+      event.reply(ipcEvents.MINIFICATION_STATUS_UPDATE, statusObject.message);
+      logger.info (statusObject.message);
+    }
+    if (statusObject.status === STEP_ERROR) {
+      event.reply(ipcEvents.MINIFICATION_STATUS_UPDATE, statusObject.message);
+      logger.error (statusObject.message,statusObject.data);
+    }
+  };
+
+
   event.reply(ipcEvents.MINIFICATION_STATUS_UPDATE, 'Starting Minification');
   let status = await copySource(sourcePathText, finalBannerSourcePath);
-  event.reply(ipcEvents.MINIFICATION_STATUS_UPDATE, 'Source Copied');
+  processLogging (status);
   status =  htmlMinOption === 'true' ? await minifyHTML(finalBannerSourcePath) : await nullPromise();
-  event.reply(ipcEvents.MINIFICATION_STATUS_UPDATE, 'HTML Minified');
+  processLogging (status);
   status =  jsMinOption === 'true' ? await minifyJS(finalBannerSourcePath) : await nullPromise();
-  event.reply(ipcEvents.MINIFICATION_STATUS_UPDATE, 'JS Minified');
+  processLogging (status);
   status =  cssMinOption === 'true' ? await minifyCSS(finalBannerSourcePath) : await nullPromise();
-  event.reply(ipcEvents.MINIFICATION_STATUS_UPDATE, 'CSS Minified');
+  processLogging (status);
   status =  optimizeImages === 'true' ? await tinifyImages(finalBannerSourcePath) : await nullPromise();
-  event.reply(ipcEvents.MINIFICATION_STATUS_UPDATE, 'Images Minified');
+  processLogging (status);
   status =  createZips === 'true' ? await makeZips(finalBannerSourcePath) : await nullPromise();
-  event.reply(ipcEvents.MINIFICATION_STATUS_UPDATE, 'Zips Created');
+  processLogging (status);
   status =  createZips === 'true' ? await copyZips(finalBannerSourcePath, finalZipPath) : await nullPromise();
-  event.reply(ipcEvents.MINIFICATION_STATUS_UPDATE, 'Zips Copied');
+  processLogging (status);
   status = createZips === 'true' ? await MakeScreenshots(finalZipPath, devicePixelRatio, staticFileSizeLimit) : await nullPromise();
-  event.reply(ipcEvents.MINIFICATION_STATUS_UPDATE, 'Statics Generated');
+  processLogging (status);
   /*
   .then(createZips === 'true' ? (pathObj) => {
     return testZips(pathObj, zipFileSizeLimit, staticFileSizeLimit);

@@ -49,17 +49,22 @@ const makeZip = (bannerRootParse, callback) => {
 export const makeZips = async (operatingDirectory) => {
   // find all banners
   let files = await findAllBannerFolderRoots(operatingDirectory);
-  await eachLimit(files, 1, makeZip);
+  try {
+    await eachLimit(files, 1, makeZip);
+  } catch (err) {
+    return reportingFactory(STEP_ERROR, 'ERROR DURING ZIPS CREATION', err);
+  }
   return reportingFactory(STEP_SUCCESS, 'ZIPS CREATED');
 };
 export const copyZips = async (sourcePath, destPath) => {
   await delay(500);
   try {
-    fs.mkdirSync(destPath);
+    //fs.mkdirSync(destPath);
     fs.copySync(sourcePath, destPath);
+    await delay(500);
   } catch (err) {
     return reportingFactory(STEP_ERROR, 'ERROR MOVING ZIPS', err);
   }
-  await delay(500);
+
   return reportingFactory(STEP_SUCCESS, 'ZIPS MOVED');
 };

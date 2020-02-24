@@ -25,7 +25,13 @@ export const minifyHTML = async (operatingDirectory) => {
     callback();
   };
   let files = await glob(path.join(operatingDirectory, '**/*.html'));
-  await eachLimit(files, 1, run);
+
+ try {
+   await eachLimit(files, 1, run);
+ }catch (err) {
+   return reportingFactory(STEP_ERROR, 'ERROR HTML MINIFIER',err);
+ }
+
   return reportingFactory(STEP_SUCCESS, 'HTML MINIFIED');
 };
 export const minifyJS = async (operatingDirectory) => {
@@ -42,7 +48,11 @@ export const minifyJS = async (operatingDirectory) => {
     callback();
   };
   let files = glob(path.join(operatingDirectory, '**/*.js'));
-  await eachLimit(files, 1, run);
+  try {
+    await eachLimit(files, 1, run);
+  }catch (err) {
+    return reportingFactory(STEP_ERROR, 'ERROR JS MINIFIER',err);
+  }
   return reportingFactory(STEP_SUCCESS, 'JS MINIFIED');
 };
 export const minifyCSS = async (operatingDirectory) => {
@@ -60,7 +70,11 @@ export const minifyCSS = async (operatingDirectory) => {
       });
   };
   let files = await glob(path.join(operatingDirectory, '**/*.css'));
-  await eachLimit(files, 1, run);
+  try {
+    await eachLimit(files, 1, run);
+  }catch (err) {
+    return reportingFactory(STEP_ERROR, 'ERROR CSS MINIFIER',err);
+  }
   return reportingFactory(STEP_SUCCESS, 'CSS MINIFIED');
 };
 export const tinifyImages = async (operatingDirectory) => {
@@ -77,7 +91,11 @@ export const tinifyImages = async (operatingDirectory) => {
     });
   };
   let files = await glob(path.join(operatingDirectory, '**/*.{jpg,png}'));
-  await eachLimit(files, 1, run);
+  try {
+    await eachLimit(files, 1, run);
+  }catch (err) {
+    return reportingFactory(STEP_ERROR, 'ERROR IMAGES MINIFIER',err);
+  }
   return reportingFactory(STEP_SUCCESS, 'IMAGES MINIFIED');
 };
 
