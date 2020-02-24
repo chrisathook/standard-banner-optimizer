@@ -133,21 +133,26 @@ export default async (event, config) => {
 
   event.reply(ipcEvents.MINIFICATION_STATUS_UPDATE, 'Starting Minification');
   let status = await copySource(sourcePathText, finalBannerSourcePath);
+  event.reply(ipcEvents.MINIFICATION_STATUS_UPDATE, 'Source Copied');
   status =  htmlMinOption === 'true' ? await minifyHTML(finalBannerSourcePath) : await nullPromise();
+  event.reply(ipcEvents.MINIFICATION_STATUS_UPDATE, 'HTML Minified');
   status =  jsMinOption === 'true' ? await minifyJS(finalBannerSourcePath) : await nullPromise();
+  event.reply(ipcEvents.MINIFICATION_STATUS_UPDATE, 'JS Minified');
   status =  cssMinOption === 'true' ? await minifyCSS(finalBannerSourcePath) : await nullPromise();
+  event.reply(ipcEvents.MINIFICATION_STATUS_UPDATE, 'CSS Minified');
   status =  optimizeImages === 'true' ? await tinifyImages(finalBannerSourcePath) : await nullPromise();
+  event.reply(ipcEvents.MINIFICATION_STATUS_UPDATE, 'Images Minified');
   status =  createZips === 'true' ? await makeZips(finalBannerSourcePath) : await nullPromise();
+  event.reply(ipcEvents.MINIFICATION_STATUS_UPDATE, 'Zips Created');
   status =  createZips === 'true' ? await copyZips(finalBannerSourcePath, finalZipPath) : await nullPromise();
+  event.reply(ipcEvents.MINIFICATION_STATUS_UPDATE, 'Zips Copied');
   status = createZips === 'true' ? await MakeScreenshots(finalZipPath, devicePixelRatio, staticFileSizeLimit) : await nullPromise();
-  /*.then()
-  .then()
-  .then()
-  .then()
+  event.reply(ipcEvents.MINIFICATION_STATUS_UPDATE, 'Statics Generated');
+  /*
   .then(createZips === 'true' ? (pathObj) => {
     return testZips(pathObj, zipFileSizeLimit, staticFileSizeLimit);
   } : nullPromise)
   .then(createZips === 'true' ? cleanUp : nullPromise)*/
   return '';
-}
-;
+};
+
