@@ -5,15 +5,12 @@ import { BrowserWindow, ipcMain, NativeImage, Rectangle } from 'electron';
 import path from 'path';
 import glob from 'glob-promise';
 import deleteEmpty from 'delete-empty';
-import slash from 'slash';
-import eachLimit from 'async/eachLimit';
-import cheerio from 'cheerio';
+import winston from 'winston';
 import { copySource } from './utils';
 import { minifyHTML, minifyJS, minifyCSS, tinifyImages } from './fileMinifiers';
-import { makeZips,copyZips } from './zipFunctions';
-import {MakeScreenshots} from './screenshotFunctions';
+import { makeZips, copyZips } from './zipFunctions';
+import { MakeScreenshots } from './screenshotFunctions';
 // minification
-
 async function cleanUp(pathObj) {
   const { finalRootPath, finalBannerPath, finalZipPath } = pathObj;
   await new Promise((resolve => {
@@ -82,9 +79,7 @@ function testZips(pathObj, zipFileSizeLimit, staticFileSizeLimit) {
     wstream.end();
   });
 }
-
 // screenshots
-
 function nullPromise(...args) {
   return Promise.resolve(...args);
 }
@@ -119,14 +114,31 @@ export default async (event, config) => {
     finalBannerSourcePath,
     finalZipPath
   };
-  await copySource(sourcePathText, finalBannerSourcePath);
-  htmlMinOption === 'true' ? await minifyHTML(finalBannerSourcePath) : await nullPromise();
-  jsMinOption === 'true' ? await minifyJS(finalBannerSourcePath) : await nullPromise();
-  cssMinOption === 'true' ? await minifyCSS(finalBannerSourcePath) : await nullPromise();
-  optimizeImages === 'true' ? await tinifyImages(finalBannerSourcePath) : await nullPromise();
-  createZips === 'true' ? await makeZips(finalBannerSourcePath) :await nullPromise();
-  createZips === 'true' ? await copyZips (finalBannerSourcePath,finalZipPath) :await nullPromise();
-  createZips === 'true' ? await MakeScreenshots(finalZipPath, devicePixelRatio, staticFileSizeLimit) :await nullPromise();
+  const logger = winston.createLogger({
+    level: 'info',
+    format: winston.format.json(),
+    defaultMeta: { service: 'user-service' },
+    transports: [
+      new winston.transports.File({
+        filename: path.join(finalZipPath, 'error.log'),
+        level: 'error'
+      }),
+      new winston.transports.File({ filename: path.join(finalZipPath, 'combined.log') })
+    ]
+  });
+  logger.add(new winston.transports.Console({
+    format: winston.format.simple()
+  }));
+  logger.info('starting process');
+
+  let status = await copySource(sourcePathText, finalBannerSourcePath);
+  status =  htmlMinOption === 'true' ? await minifyHTML(finalBannerSourcePath) : await nullPromise();
+  status =  jsMinOption === 'true' ? await minifyJS(finalBannerSourcePath) : await nullPromise();
+  status =  cssMinOption === 'true' ? await minifyCSS(finalBannerSourcePath) : await nullPromise();
+  status =  optimizeImages === 'true' ? await tinifyImages(finalBannerSourcePath) : await nullPromise();
+  status =  createZips === 'true' ? await makeZips(finalBannerSourcePath) : await nullPromise();
+  status =  createZips === 'true' ? await copyZips(finalBannerSourcePath, finalZipPath) : await nullPromise();
+  status = createZips === 'true' ? await MakeScreenshots(finalZipPath, devicePixelRatio, staticFileSizeLimit) : await nullPromise();
   /*.then()
   .then()
   .then()
@@ -134,6 +146,7 @@ export default async (event, config) => {
   .then(createZips === 'true' ? (pathObj) => {
     return testZips(pathObj, zipFileSizeLimit, staticFileSizeLimit);
   } : nullPromise)
- .then(createZips === 'true' ? cleanUp : nullPromise)*/
+  .then(createZips === 'true' ? cleanUp : nullPromise)*/
   return '';
-};
+}
+;

@@ -45,3 +45,13 @@ export const getBannerDimensions = (filePath) => {
   console.log(width, height);
   return { width, height };
 };
+export const STEP_ERROR = 'STEP_ERROR';
+export const STEP_SUCCESS = 'STEP_SUCCESS';
+export const reportingFactory = (status: string, message: string = '', data: Object = {}) => {
+  return {
+    status,
+    message,
+    data,
+    isError: status !== STEP_SUCCESS
+  };
+};

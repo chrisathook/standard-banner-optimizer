@@ -3,7 +3,13 @@ import fs from 'fs-extra';
 import archiver from 'archiver';
 import eachLimit from 'async/eachLimit';
 import delay from 'delay';
-import { findAllBannerFolderRoots, getClosetFolderFromPath } from './utils';
+import {
+  findAllBannerFolderRoots,
+  getClosetFolderFromPath,
+  reportingFactory,
+  STEP_ERROR,
+  STEP_SUCCESS
+} from './utils';
 const makeZip = (bannerRootParse, callback) => {
   const { dir, root, base, name, ext } = bannerRootParse;
   const closestFolder = getClosetFolderFromPath(dir);
@@ -44,10 +50,16 @@ export const makeZips = async (operatingDirectory) => {
   // find all banners
   let files = await findAllBannerFolderRoots(operatingDirectory);
   await eachLimit(files, 1, makeZip);
+  return reportingFactory(STEP_SUCCESS, 'ZIPS CREATED');
 };
 export const copyZips = async (sourcePath, destPath) => {
   await delay(500);
-  fs.mkdirSync(destPath);
-  fs.copySync(sourcePath, destPath);
+  try {
+    fs.mkdirSync(destPath);
+    fs.copySync(sourcePath, destPath);
+  } catch (err) {
+    return reportingFactory(STEP_ERROR, 'ERROR MOVING ZIPS', err);
+  }
   await delay(500);
+  return reportingFactory(STEP_SUCCESS, 'ZIPS MOVED');
 };
