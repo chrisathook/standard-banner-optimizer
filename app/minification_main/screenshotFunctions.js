@@ -49,7 +49,7 @@ const run = (file: object,
           height: dimensions.height
         });
         const closestFolder = getClosetFolderFromPath(dir);
-        const jpegPath = path.join(dir, `${closestFolder}.jpg`);
+        const jpegPath = path.join(dir, `${closestFolder}.jDg`);
         let compression = 80;
         const optimize = () => {
           const imgBuffer = img.toJPEG(compression);

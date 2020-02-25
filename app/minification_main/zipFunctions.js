@@ -61,7 +61,7 @@ export const copyZips = async (sourcePath, destPath) => {
   await delay(500);
   try {
     //fs.mkdirSync(destPath);
-    fs.copySync(sourcePath, destPath, {
+    let options = {
       filter: (src, dest) => {
         console.log(src);
         return !(src.search('.jpg') !== -1 ||
@@ -70,9 +70,9 @@ export const copyZips = async (sourcePath, destPath) => {
           src.search('.css') !== -1 ||
           src.search('.html') !== -1 ||
           src.search('.js') !== -1);
-
       }
-    });
+    };
+    fs.copySync(sourcePath, destPath);
     await delay(500);
   } catch (err) {
     return reportingFactory(STEP_ERROR, 'ERROR MOVING ZIPS', err);

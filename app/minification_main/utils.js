@@ -65,5 +65,11 @@ export const cleanUp = async (finalBannerPath, finalZipPath) => {
     //console.log('111 delete file', file);
     fs.removeSync(file);
   });
+  let files3 = await glob(path.join(finalZipPath, '**/*.jDg'));
+  files3.forEach(file => {
+    //console.log('111 delete file', file);
+    fs.renameSync(file,file.replace('jDg','jpg'));
+  });
+
   return reportingFactory(STEP_SUCCESS, 'CLEAN UP SUCCESS');
 };

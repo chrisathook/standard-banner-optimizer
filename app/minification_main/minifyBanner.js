@@ -92,11 +92,11 @@ export default async (event, config) => {
   processLogging(status);
   status = createZips === 'true' ? await copyZips(finalBannerSourcePath, finalZipPath) : await nullPromise();
   processLogging(status);
-  await cleanUp(finalBannerSourcePath, finalZipPath);
-  processLogging(status);
   status = createZips === 'true' ? await MakeScreenshots(finalZipPath, devicePixelRatio, staticFileSizeLimit) : await nullPromise();
   processLogging(status);
-  status = createZips === 'true' ? await testZips(finalZipPath, zipFileSizeLimit) : await nullPromise();
+  status =  await cleanUp(finalBannerSourcePath, finalZipPath);
+  processLogging(status);
+  status = createZips === 'true' ? await testZips(finalZipPath, zipFileSizeLimit,staticFileSizeLimit) : await nullPromise();
   processLogging(status);
   return '';
 };
