@@ -19,12 +19,14 @@ import {
   Checkbox,
   Select,
   Row,
-  Col
+  Col,
+  Typography
 } from 'antd';
 import ipcEvents from '../../constants/ipc_events';
 const { TextArea } = Input;
 const { Option } = Select;
 const { dialog } = remote;
+const { Title, Text } = Typography;
 //
 import styles from './home.module.scss';
 const Home = () => {
@@ -110,7 +112,7 @@ const Home = () => {
     return (
       <Fragment>
         <Form.Item>
-          {props.title} &nbsp;
+          <Text>{props.title}</Text>
           <br/>
           <Select
             defaultValue={props.display_value}
@@ -126,17 +128,22 @@ const Home = () => {
     );
   };
   return (
-    <div>
-      <h1>Standard Banner Minifier</h1>
-      <Form onSubmit={handleSubmit}>
-        Paste Directory Path of Source Files or <Button
-        onClick={(e) => {
-          spawnDialog(e, ACTIONS.source_input_change);
-        }}
-        type="primary">click here</Button>
+    <div className={styles.main_div}>
 
-        <div>
-          <Form.Item>
+      <Row>
+        <Col><Title>Standard Banner Minifier</Title></Col>
+      </Row>
+
+
+      <Form onSubmit={handleSubmit}>
+
+
+        <Row>
+          <Col><Text>Paste Directory Path of Source Files:</Text></Col>
+
+        </Row>
+        <Row>
+          <Col span={12}><Form.Item>
             <input
               id="source_path_field"
               className={styles.minifier_form_input}
@@ -145,16 +152,17 @@ const Home = () => {
               onChange={handleInputSource}
               placeholder="Paste Path to Source Folder"
             />
-          </Form.Item>
-        </div>
-        <div>
-          Paste Directory Path of Output Files or <Button
-          onClick={(e) => {
-            spawnDialog(e, ACTIONS.output_input_change);
-          }}
-          type="primary">click here</Button>
-          <br/>
-          <Form.Item>
+          </Form.Item></Col>
+          <Col style={{ paddingLeft: '10px' }} span={12}><Button
+            onClick={(e) => {
+              spawnDialog(e, ACTIONS.source_input_change);
+            }}
+            type="primary">Use File Browser</Button></Col>
+        </Row>
+
+
+        <Row>
+          <Col span={12}><Form.Item>
             <input
               id="output_path_field"
               className={styles.minifier_form_input}
@@ -163,69 +171,85 @@ const Home = () => {
               onChange={handleInputOutput}
               placeholder="Paste Path to Output Folder"
             />
-          </Form.Item>
-        </div>
+          </Form.Item></Col>
+          <Col style={{ paddingLeft: '10px' }} span={12}><Button
+            onClick={(e) => {
+              spawnDialog(e, ACTIONS.output_input_change);
+            }}
+            type="primary">Use File Browser</Button></Col>
+        </Row>
 
-        <div>
-          <Row className={styles.min_col}>
-            <Col span={8}> <FormSelector
-              title="Minify HTML"
-              display_value={formState.htmlMinOption}
-              submit_function={ACTIONS.html_min_submit}
-            /></Col>
-            <Col span={8}> <FormSelector
-              title="Minify JS"
-              display_value={formState.jsMinOption}
-              submit_function={ACTIONS.js_min_submit}
-            /></Col>
-            <Col span={8}><FormSelector
-              title="Minify CSS"
-              display_value={formState.cssMinOption}
-              submit_function={ACTIONS.css_min_submit}
-            /></Col>
-          </Row>
-          <Row className={styles.min_col}>
-            <Col span={8}><FormSelector
-              title="Optimize Images"
-              display_value={formState.optimizeImages}
-              submit_function={ACTIONS.optimize_images_submit}
-            /></Col>
-            <Col span={8}><FormSelector
-              title="Make Zips"
-              display_value={formState.createZips}
-              submit_function={ACTIONS.zips_submit}
-            /></Col>
-            <Col span={8}>
-              Zip File Size Limit in KB
-              <InputNumber min={50} max={500}
-                           defaultValue={formState.zipFileSizeLimit}
-                           onChange={handleZipSizeChange}/>
-              <br/>
-              <br/>
-              Static File Size Limit in KB
-              <InputNumber min={20} max={500}
-                           defaultValue={formState.staticFileSizeLimit}
-                           onChange={handleStaticSizeChange}/>
+        <Row>
+          <Col>
+            <Title level={2}>Minifier Options</Title>
+          </Col>
+        </Row>
+        <Row>
+          <Col className={styles.min_col} span={8}> <FormSelector
+            title="Minify HTML"
+            display_value={formState.htmlMinOption}
+            submit_function={ACTIONS.html_min_submit}
+          /></Col>
+          <Col className={styles.min_col} span={8}> <FormSelector
+            title="Minify JS"
+            display_value={formState.jsMinOption}
+            submit_function={ACTIONS.js_min_submit}
+          /></Col>
+          <Col className={styles.min_col} span={8}><FormSelector
+            title="Minify CSS"
+            display_value={formState.cssMinOption}
+            submit_function={ACTIONS.css_min_submit}
+          /></Col>
+        </Row>
+        <Row>
+          <Col className={styles.min_col} span={8}><FormSelector
+            title="Optimize Images"
+            display_value={formState.optimizeImages}
+            submit_function={ACTIONS.optimize_images_submit}
+          /></Col>
+          <Col className={styles.min_col} span={8}><FormSelector
+            title="Make Zips"
+            display_value={formState.createZips}
+            submit_function={ACTIONS.zips_submit}
+          /></Col>
+          <Col className={styles.min_col} span={8}>
+            <Text>Zip File Size Limit in KB</Text><br/>
+            <InputNumber style={{marginTop:"10px"}} min={50} max={500}
+                         defaultValue={formState.zipFileSizeLimit}
+                         onChange={handleZipSizeChange}/>
 
-            </Col>
-          </Row>
 
-        </div>
+          </Col>
+        </Row>
 
-        <div>
-          <Form.Item>
+        <Row>
+          <Col className={styles.min_col} span={8}>
+            <Text>Static File Size Limit in KB</Text><br/>
+            <InputNumber min={20} max={500}
+                         defaultValue={formState.staticFileSizeLimit}
+                         onChange={handleStaticSizeChange}/>
+          </Col>
+        </Row>
+<br/>
+        <Row>
+          <Col className={styles.min_col}>
+            <Form.Item>
+              <TextArea
+                className={styles.min_col}
+                rows={4}
+                readOnly
+                placeholder="Results Updated Here"
+                value={statusText}
+              />
+            </Form.Item>
+
+          </Col>
+        </Row>
+        <Row>
+          <Col style={{paddingTop:'10px'}}><Form.Item>
             <input type="submit" value="Submit"/>
-          </Form.Item>
-          <Form.Item>
-            <TextArea
-              className={styles.min_col}
-              rows={4}
-              readOnly
-              placeholder="Results Updated Here"
-              value={statusText}
-            />
-          </Form.Item>
-        </div>
+          </Form.Item></Col>
+        </Row>
       </Form>
     </div>
   );

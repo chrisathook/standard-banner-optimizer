@@ -1,10 +1,16 @@
 .minifier_form_input {
 
 color: black;
-  width: 500px;
+  width: 100%;
   height: 30px;
+  min-width: 250px;
 }
 
 .min_col {
-  width: 600px;
+  min-width: 200px;
+}
+
+.main_div {
+  height: 100vw;
+  max-width: 1024px;
 }

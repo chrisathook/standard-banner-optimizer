@@ -21,8 +21,8 @@ const AppHeader = (props) => {
 
           <Button className={styles.header_button} onClick={(e)=>{clickHandler(e,Routes.HOME)}} >HOME</Button>
           <Button className={styles.header_button} onClick={(e)=>{clickHandler(e,Routes.MINIFIER)}} >MINIFIER</Button>
-          <Button className={styles.header_button} onClick={(e)=>{clickHandler(e,Routes.VALIDATOR)}} >VALIDATOR</Button>
-          <Button className={styles.header_button} onClick={(e)=>{clickHandler(e,Routes.SERVER)}}>SERVER</Button>
+          <Button disabled={true} className={styles.header_button} onClick={(e)=>{clickHandler(e,Routes.VALIDATOR)}} >VALIDATOR</Button>
+          <Button disabled={true} className={styles.header_button} onClick={(e)=>{clickHandler(e,Routes.SERVER)}}>SERVER</Button>
         </Col>
       </Row>
 
