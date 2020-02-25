@@ -1,23 +1,35 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Router, Route, Switch } from 'react-router';
+import Routes from "./constants/routes"
 import history from './utils/history';
-import Header from './components/views/header';
+import { Layout } from 'antd';
+const { Header, Footer, Sider, Content } = Layout;
+import AppHeader from './components/views/header';
 import Home from './components/views/home';
-export default () => {
-  return (
-    <div>
-      <Router history={history}>
-        <Header history={history}/>
-        <br/>
-        <br/>
-        <div>
-          <Switch>
-            <Route exact path='/' component={Home}/>
-          </Switch>
-        </div>
-      </Router>
+import Directions from "./components/views/directions"
 
-    </div>
+export default () => {
+  useEffect(() => {
+    history.push('/');
+  });
+  return (
+    <Router history={history}>
+
+      <Layout>
+        <Header>
+          <AppHeader history={history}/>
+        </Header>
+
+        <Content>
+          <Switch>
+            <Route exact path={Routes.HOME} component={Directions}/>
+          </Switch>
+          <Switch>
+            <Route exact path={Routes.MINIFIER} component={Home}/>
+          </Switch>
+        </Content>
+      </Layout>
+    </Router>
   );
 }
 
