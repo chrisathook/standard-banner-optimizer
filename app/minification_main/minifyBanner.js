@@ -6,7 +6,13 @@ import path from 'path';
 import glob from 'glob-promise';
 import deleteEmpty from 'delete-empty';
 import winston from 'winston';
-import { cleanUp, copySource, STEP_ERROR, STEP_SUCCESS } from './utils';
+import {
+  cleanUp,
+  copySource,
+  reportingFactory,
+  STEP_ERROR,
+  STEP_SUCCESS
+} from './utils';
 import { minifyHTML, minifyJS, minifyCSS, tinifyImages } from './fileMinifiers';
 import { makeZips, copyZips } from './zipFunctions';
 import { MakeScreenshots } from './screenshotFunctions';
@@ -15,15 +21,7 @@ import ipcEvents from '../constants/ipc_events';
 // minification
 // tests
 // screenshots
-function nullPromise(...args) {
-  return Promise.resolve(...args);
-}
-/*
-tinify.key = KEYS.TINIFY;
-tinify.validate(function(err) {
-  if (err) throw err;
-  console.log('!!!! API KEY GOOD');
-});*/
+
 export default async (event, config) => {
   // vars from UI
   const {
@@ -80,24 +78,33 @@ export default async (event, config) => {
   event.reply(ipcEvents.MINIFICATION_STATUS_UPDATE, 'Starting Minification');
   let status = await copySource(sourcePathText, finalBannerSourcePath);
   processLogging(status);
-  status = htmlMinOption === 'true' ? await minifyHTML(finalBannerSourcePath) : await nullPromise();
+  if (status.status === STEP_ERROR) return "!!! Process Halted Due To Error";
+  status = htmlMinOption === 'true' ? await minifyHTML(finalBannerSourcePath) : reportingFactory(STEP_SUCCESS, 'BYPASS HTML MIN');
   processLogging(status);
-  status = jsMinOption === 'true' ? await minifyJS(finalBannerSourcePath) : await nullPromise();
+  if (status.status === STEP_ERROR) return "!!! Process Halted Due To Error";
+  status = jsMinOption === 'true' ? await minifyJS(finalBannerSourcePath) : reportingFactory(STEP_SUCCESS, 'BYPASS JS MIN');
   processLogging(status);
-  status = cssMinOption === 'true' ? await minifyCSS(finalBannerSourcePath) : await nullPromise();
+  if (status.status === STEP_ERROR) return "!!! Process Halted Due To Error";
+  status = cssMinOption === 'true' ? await minifyCSS(finalBannerSourcePath) : reportingFactory(STEP_SUCCESS, 'BYPASS CSS MIN');
   processLogging(status);
-  status = optimizeImages === 'true' ? await tinifyImages(finalBannerSourcePath) : await nullPromise();
+  if (status.status === STEP_ERROR) return "!!! Process Halted Due To Error";
+  status = optimizeImages === 'true' ? await tinifyImages(finalBannerSourcePath) : reportingFactory(STEP_SUCCESS, 'BYPASS IMAGE MIN');
   processLogging(status);
-  status = createZips === 'true' ? await makeZips(finalBannerSourcePath) : await nullPromise();
+  if (status.status === STEP_ERROR) return "!!! Process Halted Due To Error";
+  status = createZips === 'true' ? await makeZips(finalBannerSourcePath) : reportingFactory(STEP_SUCCESS, 'BYPASS Make Zips');
   processLogging(status);
-  status = createZips === 'true' ? await copyZips(finalBannerSourcePath, finalZipPath) : await nullPromise();
+  if (status.status === STEP_ERROR) return "!!! Process Halted Due To Error";
+  status = createZips === 'true' ? await copyZips(finalBannerSourcePath, finalZipPath) : reportingFactory(STEP_SUCCESS, 'BYPASS Copy Zips');
   processLogging(status);
-  status = createZips === 'true' ? await MakeScreenshots(finalZipPath, devicePixelRatio, staticFileSizeLimit) : await nullPromise();
+  if (status.status === STEP_ERROR) return "!!! Process Halted Due To Error";
+  status = createZips === 'true' ? await MakeScreenshots(finalZipPath, devicePixelRatio, staticFileSizeLimit) : reportingFactory(STEP_SUCCESS, 'BYPASS Screenshots');
   processLogging(status);
+  if (status.status === STEP_ERROR) return "!!! Process Halted Due To Error";
   status =  await cleanUp(finalBannerSourcePath, finalZipPath);
   processLogging(status);
-  status = createZips === 'true' ? await testZips(finalZipPath, zipFileSizeLimit,staticFileSizeLimit) : await nullPromise();
+  if (status.status === STEP_ERROR) return "!!! Process Halted Due To Error";
+  status = createZips === 'true' ? await testZips(finalZipPath, zipFileSizeLimit,staticFileSizeLimit) : reportingFactory(STEP_SUCCESS, 'BYPASS Tests');
   processLogging(status);
-  return '';
+  return 'Process Successful Files are in : '+finalRootPath;
 };
 

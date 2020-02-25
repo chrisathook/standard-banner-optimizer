@@ -1,10 +1,26 @@
 // @flow
-import React, { useState, useContext, useEffect, Fragment,useRef } from 'react';
+import React, {
+  useState,
+  useContext,
+  useEffect,
+  Fragment,
+  useRef
+} from 'react';
 import { Context } from '../../store/Store';
 import * as ACTIONS from '../../store/actions/actions';
 import { remote, ipcRenderer } from 'electron';
 import { isAbsoluteLinuxPath, isAbsoluteWindowsPath } from 'path-validation';
-import { Form, Icon, Input,InputNumber , Button, Checkbox, Select, Row, Col } from 'antd';
+import {
+  Form,
+  Icon,
+  Input,
+  InputNumber,
+  Button,
+  Checkbox,
+  Select,
+  Row,
+  Col
+} from 'antd';
 import ipcEvents from '../../constants/ipc_events';
 const { TextArea } = Input;
 const { Option } = Select;
@@ -20,27 +36,20 @@ const Home = () => {
     return !!(winValidator(path) || osxValidator(path));
   };
   // effects
-
   let ipcMessagelistener = (event, message) => {
-    setStatusText(message +"\n" + prevCountRef.current);
+    setStatusText(message + '\n' + prevCountRef.current);
   };
-
   const prevCountRef = useRef();
-
   useEffect(() => {
-
     prevCountRef.current = statusText;
-
-  },[statusText]);
-
+  }, [statusText]);
   useEffect(() => {
     formDispatch(ACTIONS.window_aspect_ratio_submit(window.devicePixelRatio));
-
     ipcRenderer.on(ipcEvents.MINIFICATION_STATUS_UPDATE, ipcMessagelistener);
     ipcRenderer.on(ipcEvents.END_MINIFICATION, ipcMessagelistener);
     return () => {
-      ipcRenderer.removeListener(ipcEvents.END_MINIFICATION, ipcMessagelistener  );
-      ipcRenderer.removeListener(ipcEvents.MINIFICATION_STATUS_UPDATE, ipcMessagelistener  );
+      ipcRenderer.removeListener(ipcEvents.END_MINIFICATION, ipcMessagelistener);
+      ipcRenderer.removeListener(ipcEvents.MINIFICATION_STATUS_UPDATE, ipcMessagelistener);
     };
   }, []);
   // handlers
@@ -59,7 +68,7 @@ const Home = () => {
       setStatusText('Your Source and Output paths can\'t be equal');
       return;
     }
-
+    setStatusText('');
     ipcRenderer.send(ipcEvents.START_MINIFICATION, formState);
   };
   const handleInputSource = (event) => {
@@ -70,11 +79,11 @@ const Home = () => {
     formDispatch(ACTIONS.output_input_change(event.target.value));
     event.preventDefault();
   };
-  const handleZipSizeChange = (value)=>{
+  const handleZipSizeChange = (value) => {
     formDispatch(ACTIONS.zip_file_size_limit(value));
     event.preventDefault();
   };
-  const handleStaticSizeChange = (value)=>{
+  const handleStaticSizeChange = (value) => {
     formDispatch(ACTIONS.static_file_size_limit(value));
     event.preventDefault();
   };
@@ -188,11 +197,15 @@ const Home = () => {
             /></Col>
             <Col span={8}>
               Zip File Size Limit in KB
-              <InputNumber min={50} max={500} defaultValue={formState.zipFileSizeLimit} onChange={handleZipSizeChange} />
+              <InputNumber min={50} max={500}
+                           defaultValue={formState.zipFileSizeLimit}
+                           onChange={handleZipSizeChange}/>
               <br/>
               <br/>
               Static File Size Limit in KB
-              <InputNumber min={20} max={500} defaultValue={formState.staticFileSizeLimit} onChange={handleStaticSizeChange} />
+              <InputNumber min={20} max={500}
+                           defaultValue={formState.staticFileSizeLimit}
+                           onChange={handleStaticSizeChange}/>
 
             </Col>
           </Row>
@@ -200,18 +213,18 @@ const Home = () => {
         </div>
 
         <div>
-        <Form.Item>
-          <input type="submit" value="Submit"/>
-        </Form.Item>
-        <Form.Item>
-          <TextArea
-            className={styles.min_col}
-            rows={4}
-            readOnly
-            placeholder="Results Updated Here"
-            value={statusText}
-          />
-        </Form.Item>
+          <Form.Item>
+            <input type="submit" value="Submit"/>
+          </Form.Item>
+          <Form.Item>
+            <TextArea
+              className={styles.min_col}
+              rows={4}
+              readOnly
+              placeholder="Results Updated Here"
+              value={statusText}
+            />
+          </Form.Item>
         </div>
       </Form>
     </div>

@@ -96,11 +96,8 @@ app.on('activate', () => {
   // dock icon is clicked and there are no other windows open.
   if (mainWindow === null) createWindow();
 });
-ipcMain.on(ipcEvents.START_MINIFICATION, (event, arg) => {
+ipcMain.on(ipcEvents.START_MINIFICATION, async (event, arg) => {
   //console.log('!!MAIN ', arg); // prints "ping"
-  minifier(event, arg)
-    .then (()=>{
-      event.reply(ipcEvents.END_MINIFICATION, 'minification done');
-    })
-
+  let res = await minifier(event, arg);
+  event.reply(ipcEvents.END_MINIFICATION, res);
 });

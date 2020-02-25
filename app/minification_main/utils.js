@@ -9,9 +9,9 @@ export const copySource = async (sourcePath, destPath) => {
     fs.copySync(sourcePath, destPath);
     //console.log('success!');
   } catch (err) {
-    console.error(err);
-    reject();
+    return reportingFactory(STEP_ERROR, 'ERROR COPYING SOURCE', err);
   }
+  return reportingFactory(STEP_SUCCESS, 'SOURCE COPY SUCCESSFUL');
 };
 /**
  * takes in path and finds all banner roots assuming index.html file
@@ -68,8 +68,7 @@ export const cleanUp = async (finalBannerPath, finalZipPath) => {
   let files3 = await glob(path.join(finalZipPath, '**/*.jDg'));
   files3.forEach(file => {
     //console.log('111 delete file', file);
-    fs.renameSync(file,file.replace('jDg','jpg'));
+    fs.renameSync(file, file.replace('jDg', 'jpg'));
   });
-
   return reportingFactory(STEP_SUCCESS, 'CLEAN UP SUCCESS');
 };
