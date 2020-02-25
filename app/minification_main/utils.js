@@ -4,17 +4,14 @@ import fs from 'fs-extra';
 import glob from 'glob-promise';
 import cheerio from 'cheerio';
 import deleteEmpty from 'delete-empty';
-export const copySource = (sourcePath, destPath) => {
-  return new Promise(((resolve, reject) => {
-    try {
-      fs.copySync(sourcePath, destPath);
-      //console.log('success!');
-    } catch (err) {
-      console.error(err);
-      reject();
-    }
-    resolve();
-  }));
+export const copySource = async (sourcePath, destPath) => {
+  try {
+    fs.copySync(sourcePath, destPath);
+    //console.log('success!');
+  } catch (err) {
+    console.error(err);
+    reject();
+  }
 };
 /**
  * takes in path and finds all banner roots assuming index.html file
@@ -68,4 +65,5 @@ export const cleanUp = async (finalBannerPath, finalZipPath) => {
     //console.log('111 delete file', file);
     fs.removeSync(file);
   });
+  return reportingFactory(STEP_SUCCESS, 'CLEAN UP SUCCESS');
 };

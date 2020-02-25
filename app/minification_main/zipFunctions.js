@@ -3,6 +3,7 @@ import fs from 'fs-extra';
 import archiver from 'archiver';
 import eachLimit from 'async/eachLimit';
 import delay from 'delay';
+import { isAbsoluteLinuxPath, isAbsoluteWindowsPath } from 'path-validation';
 import {
   findAllBannerFolderRoots,
   getClosetFolderFromPath,
@@ -60,11 +61,21 @@ export const copyZips = async (sourcePath, destPath) => {
   await delay(500);
   try {
     //fs.mkdirSync(destPath);
-    fs.copySync(sourcePath, destPath);
+    fs.copySync(sourcePath, destPath, {
+      filter: (src, dest) => {
+        console.log(src);
+        return !(src.search('.jpg') !== -1 ||
+          src.search('.svg') !== -1 ||
+          src.search('.png') !== -1 ||
+          src.search('.css') !== -1 ||
+          src.search('.html') !== -1 ||
+          src.search('.js') !== -1);
+
+      }
+    });
     await delay(500);
   } catch (err) {
     return reportingFactory(STEP_ERROR, 'ERROR MOVING ZIPS', err);
   }
-
   return reportingFactory(STEP_SUCCESS, 'ZIPS MOVED');
 };
