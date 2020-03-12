@@ -1,28 +1,34 @@
 // @flow
-import React, { useContext,useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import Routes from '../../constants/routes';
+import styles from './header.module.scss';
+import {
+  Button,
+  Row,
+  Col
+} from 'antd';
+const AppHeader = (props) => {
 
-const Header = (props) => {
+  const clickHandler = (event,data) =>{
+    props.history.push (data);
+  };
 
+  return (
+    <div>
 
-    useEffect(()=>{
-      props.history.push ('/');
-    });
+      <Row>
+        <Col className={styles.header_button}  span={24}>
 
-    return(
-        <div>
-            <Link to='/' style={{padding: '5px'}}>
-                Home
-            </Link>
-            <Link to='/basics' style={{padding: '5px'}}>
-                basics
-            </Link>
-
-        </div>
-    )};
-
+          <Button className={styles.header_button} onClick={(e)=>{clickHandler(e,Routes.HOME)}} >HOME</Button>
+          <Button className={styles.header_button} onClick={(e)=>{clickHandler(e,Routes.MINIFIER)}} >MINIFIER</Button>
+          <Button disabled={true} className={styles.header_button} onClick={(e)=>{clickHandler(e,Routes.VALIDATOR)}} >VALIDATOR</Button>
+          <Button disabled={true} className={styles.header_button} onClick={(e)=>{clickHandler(e,Routes.SERVER)}}>SERVER</Button>
+        </Col>
+      </Row>
 
 
 
-
-export default Header;
+    </div>
+  );
+};
+export default AppHeader;

@@ -263,10 +263,14 @@
     "@hot-loader/react-dom": "^16.11.0",
     "antd": "^3.26.9",
     "archiver": "^3.1.1",
+    "async": "^3.1.1",
+    "browserstack": "^1.5.3",
+    "cheerio": "^1.0.0-rc.3",
     "clean-css": "^4.2.3",
     "connected-react-router": "^6.6.1",
     "copyfiles": "^2.2.0",
     "core-js": "^3.5.0",
+    "delay": "^4.3.0",
     "delete-empty": "^3.0.0",
     "devtron": "^1.4.0",
     "electron-debug": "^3.0.1",
@@ -276,6 +280,7 @@
     "glob-promise": "^3.4.0",
     "history": "^4.10.1",
     "html-minifier": "^4.0.0",
+    "jimp": "^0.9.3",
     "moment": "^2.24.0",
     "path-validation": "^0.2.3",
     "react": "^16.12.0",
@@ -290,7 +295,8 @@
     "source-map-support": "^0.5.16",
     "ssh2-sftp-client": "^5.0.2",
     "tinify": "^1.6.0-beta.2",
-    "uglify-js": "^3.8.0"
+    "uglify-js": "^3.8.0",
+    "winston": "^3.2.1"
   },
   "devEngines": {
     "node": ">=7.x",

@@ -10,7 +10,10 @@ export const initialState = {
   cssMinOption: 'true',
   svgMinOption: 'true',
   optimizeImages: 'false',
-  createZips: 'true'
+  createZips: 'true',
+  devicePixelRatio:1,
+  zipFileSizeLimit:150,
+  staticFileSizeLimit:40
 };
 export const FormReducer = (state, action) => {
   switch (action.type) {
@@ -58,6 +61,21 @@ export const FormReducer = (state, action) => {
       return {
         ...state,
         createZips: action.payload
+      };
+    case ACTION_TYPES.WINDOW_ASPECT_RATIO_CHANGE:
+      return {
+        ...state,
+        devicePixelRatio: action.payload
+      };
+    case ACTION_TYPES.ZIP_FILE_SIZE_LIMIT:
+      return {
+        ...state,
+        zipFileSizeLimit: action.payload
+      };
+    case ACTION_TYPES.STATIC_FILE_SIZE_LIMIT:
+      return {
+        ...state,
+        staticFileSizeLimit: action.payload
       };
     default:
       throw new Error();

@@ -60,3 +60,21 @@ export const optimize_images_submit = (text) => {
     payload: text
   };
 };
+export const window_aspect_ratio_submit = (text) => {
+  return {
+    type: ACTION_TYPES.WINDOW_ASPECT_RATIO_CHANGE,
+    payload: text
+  };
+};
+export const zip_file_size_limit = (text) => {
+  return {
+    type: ACTION_TYPES.ZIP_FILE_SIZE_LIMIT,
+    payload: text
+  };
+};
+export const static_file_size_limit = (text) => {
+  return {
+    type: ACTION_TYPES.STATIC_FILE_SIZE_LIMIT,
+    payload: text
+  };
+};

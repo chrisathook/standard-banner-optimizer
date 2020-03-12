@@ -1,318 +1,110 @@
 // @flow
 import fs from 'fs-extra';
 import moment from 'moment';
-import { promisify } from 'util';
+import { BrowserWindow, ipcMain, NativeImage, Rectangle } from 'electron';
 import path from 'path';
 import glob from 'glob-promise';
-import * as HTMLMinifier from 'html-minifier';
-import * as JSMinifier from 'uglify-js';
-import CleanCSS from 'clean-css';
-import tinify from 'tinify';
-import archiver from 'archiver';
 import deleteEmpty from 'delete-empty';
-import KEYS from '../constants/api_keys';
-import Client from 'ssh2-sftp-client';
-import slash from 'slash';
-function copySource(sourcePath, destPath) {
-  return new Promise(((resolve, reject) => {
-    let timestamp = moment().format('YYYYMMDD_HHmmSS');
-    let finalRootPath = path.join(destPath, timestamp);
-    let finalBannerPath = path.join(finalRootPath, 'source');
-    let finalZipPath = path.join(finalRootPath, 'final_zips');
-    try {
-      fs.copySync(sourcePath, finalBannerPath);
-      //console.log('success!');
-    } catch (err) {
-      console.error(err);
-      reject();
-    }
-    resolve({ finalRootPath, finalBannerPath, finalZipPath, timestamp });
-  }));
-}
-function minifyHTML(pathObj) {
-  const { finalRootPath, finalBannerPath, finalZipPath } = pathObj;
-  return new Promise(((resolve, reject) => {
-    let run = async (file) => {
-      //console.log('!!!', file);
-      let data = await fs.readFile(file, 'utf8');
-      data = HTMLMinifier.minify(data, {
-        collapseWhitespace: true,
-        conservativeCollapse: true,
-        html5: true,
-        minifyCSS: true,
-        minifyJS: true,
-        removeComments: true
-      });
-      await fs.writeFile(file, data);
-    };
-    glob(path.join(finalBannerPath, '**/*.html'))
-      .then(files => {
-        files.forEach(run);
-      })
-      .then(() => resolve(pathObj));
-  }));
-}
-function minifyJS(pathObj) {
-  const { finalRootPath, finalBannerPath, finalZipPath } = pathObj;
-  return new Promise(((resolve, reject) => {
-    let run = async (file) => {
-      // console.log('!!!', file);
-      let data = await fs.readFile(file, 'utf8');
-      data = JSMinifier.minify(data, {
-        compress: {
-          drop_console: true,
-          keep_fnames: true
-        }
-      }).code;
-      await fs.writeFile(file, data);
-    };
-    glob(path.join(finalBannerPath, '**/*.js'))
-      .then(files => {
-        files.forEach(run);
-      })
-      .then(() => resolve(pathObj));
-  }));
-}
-function minifyCSS(pathObj) {
-  const { finalRootPath, finalBannerPath, finalZipPath } = pathObj;
-  return new Promise(((resolve, reject) => {
-    let run = async (file) => {
-      //console.log('!!!', file);
-      let data = await fs.readFile(file, 'utf8');
-      let css = new CleanCSS({ returnPromise: true });
-      data = await css.minify(data);
-      data = data.styles;
-      await fs.writeFile(file, data);
-    };
-    glob(path.join(finalBannerPath, '**/*.css'))
-      .then(files => {
-        files.forEach(run);
-      })
-      .then(() => resolve(pathObj));
-  }));
-}
-function tinifyImages(pathObj) {
-  const { finalRootPath, finalBannerPath, finalZipPath } = pathObj;
-  tinify.key = KEYS.TINIFY;
-  // console.log('!!', rootPath);
-  return new Promise(((resolve, reject) => {
-    let run = async (file) => {
-      // console.log('!!!', file);
-      let data = await fs.readFile(file);
-      data = await new Promise(((resolve1, reject1) => {
-        tinify.fromBuffer(data).toBuffer((err, resultData) => {
-          if (err) {
-            throw err;
-          }
-          resolve1(resultData);
-        });
-      }));
-      await fs.writeFile(file, data);
-    };
-    glob(path.join(finalBannerPath, '**/*.{jpg,png}'))
-      .then(files => {
-        files.forEach(run);
-      })
-      .then(() => resolve(pathObj));
-  }));
-}
+import winston from 'winston';
+import {
+  cleanUp,
+  copySource,
+  reportingFactory,
+  STEP_ERROR,
+  STEP_SUCCESS
+} from './utils';
+import { minifyHTML, minifyJS, minifyCSS, tinifyImages } from './fileMinifiers';
+import { makeZips, copyZips } from './zipFunctions';
+import { MakeScreenshots } from './screenshotFunctions';
+import { testZips } from './testing';
+import ipcEvents from '../constants/ipc_events';
 // minification
-function makeZips(pathObj) {
-  const { finalRootPath, finalBannerPath, finalZipPath } = pathObj;
-  return new Promise(((resolve, reject) => {
-    let makeZip = async (bannerRootParse) => {
-      await new Promise(((resolve1, reject1) => {
-        const { dir, root, base, name, ext } = bannerRootParse;
-        const closestFolder = dir.split('/').slice(-1).pop();
-        const zipName = path.join(dir, `${closestFolder}.zip`);
-        const output = fs.createWriteStream(zipName);
-        const archive = archiver('zip', {
-          zlib: { level: 9 } // Sets the compression level.
-        });
-        output.on('close', function() {
-          console.log(archive.pointer() + ' total bytes');
-          console.log('archiver has been finalized and the output file descriptor has closed.');
-          resolve1();
-        });
-        archive.on('warning', function(err) {
-          if (err.code === 'ENOENT') {
-            console.warn(err);
-          } else {
-            // throw error
-            throw err;
-          }
-        });
-        archive.on('error', function(err) {
-          throw err;
-        });
-        output.on('end', function() {
-          console.log('Data has been drained');
-        });
-        archive.pipe(output);
-        archive.glob(
-          path.join('**/*.{html,jpg,png,svg,js,css}'),
-          {
-            cwd: dir,
-            root: dir
-          });
-        archive.finalize();
-      }));
-    };
-    // find all banners
-    findAllBannerFolderRoots(finalBannerPath)
-      .then(paths => {
-        paths.forEach(makeZip);
-      })
-      .then(() => resolve(pathObj));
-  }));
-}
-/**
- * takes in path and finds all banner roots assuming index.html file
- * @param targetPath
- * @returns {Promise<object[]>}
- */
-function findAllBannerFolderRoots(targetPath) {
-  return new Promise((resolve, reject) => {
-    glob(path.join(targetPath, '**/index.html'))
-      .then(files => {
-        return files.map(path.parse);
-      })
-      .then((paths:object[]) => resolve(paths));
-  });
-}
-function copyZips(pathObj) {
-  const { finalRootPath, finalBannerPath, finalZipPath } = pathObj;
-  return new Promise((resolve => {
-    setTimeout(() => {
-      fs.mkdirSync(finalZipPath);
-      fs.copySync(finalBannerPath, finalZipPath);
-      setTimeout(() => {
-        resolve(pathObj);
-      }, 500);
-    }, 500);
-  }));
-}
-async function cleanUp(pathObj) {
-  const { finalRootPath, finalBannerPath, finalZipPath } = pathObj;
-  await new Promise((resolve => {
-    glob(path.join(finalZipPath, '**/*.{html,jpg,png,svg,js,css}'))
-      .then(files => {
-        files.forEach(file => {
-          //console.log('111 delete file', file);
-          fs.removeSync(file);
-        });
-      })
-      .then(resolve);
-  }));
-  await deleteEmpty(finalZipPath);
-  await new Promise((resolve => {
-    glob(path.join(finalBannerPath, '**/*.zip'))
-      .then(files => {
-        files.forEach(file => {
-          //console.log('111 delete file', file);
-          fs.removeSync(file);
-        });
-      })
-      .then(resolve);
-  }));
-}
 // tests
-function testZipSize(filePath, loggingStream) {
-  const stats = fs.statSync(filePath);
-  const fileSizeInBytes = stats['size'];
-  const fileSizeInKilobytes = fileSizeInBytes / 1000.0;
-  const maxSize = 150.0;
-  const isUnder = fileSizeInKilobytes <= maxSize;
-  const testFailed = !isUnder;
-  loggingStream.write(`Running Zip Size Test : \n`);
-  if (testFailed) {
-    loggingStream.write(`TEST FAILED  !! --------------- File size in KB ${fileSizeInKilobytes} is > ${maxSize} \n `);
-  } else {
-    loggingStream.write(`  TEST PASSED *** File size in KB ${fileSizeInKilobytes} is <= ${maxSize} \n `);
-  }
-  return {
-    isUnder,
-    fileSizeInBytes,
-    fileSizeInKilobytes,
-    maxSize,
-    testFailed
-  };
-}
-function testZips(pathObj) {
-  return new Promise(async (resolve, reject) => {
-    const { finalRootPath, finalBannerPath, finalZipPath } = pathObj;
-    const wstream = fs.createWriteStream(path.join(finalZipPath, 'zip_tests.log'));
-    const files = await glob(path.join(finalZipPath, '**/*.zip'));
-    const failedFiles = [];
-    wstream.on('finish', function() {
-      resolve(pathObj);
-    });
-    const run = async (file) => {
-      wstream.write(`BEGIN ALL TESTS ON Zip --- \n ${file}  `);
-      const sizeResults = testZipSize(file, wstream);
-      if (sizeResults.testFailed) failedFiles.push(file);
-    };
-    files.forEach(run);
-    wstream.write(`ZIP TESTING COMPLETE __________________________________ \n `);
-    wstream.write(`THE FOLLOWING FILES HAVE FAILED TESTS \n `);
-    failedFiles.forEach(file => {
-      wstream.write(`FAILED ${file} \n `);
-    });
-    wstream.end();
-  });
-}
 // screenshots
-function MakeScreenshots(pathObj) {
-  return new Promise(async (resolve, reject) => {
-    const { finalRootPath, finalBannerPath, finalZipPath, timestamp } = pathObj;
-    const remoteRoot = KEYS.FTP_ROOT + `/${timestamp}`;
-    const remoteHTTPSRoot = KEYS.FTP_HTTPS_ROOT + `/${timestamp}`;
-    const sftp = new Client();
-    await sftp.connect({
-      host: KEYS.FTP_DOMAIN,
-      port: 22,
-      username: KEYS.FTP_USER,
-      password: KEYS.FTP_PW
-    });
-    await sftp.mkdir(remoteRoot);
-    const rslt = await sftp.uploadDir(finalZipPath, remoteRoot);
-    let remoteBannerURLS = await findAllBannerFolderRoots(finalZipPath);
-    remoteBannerURLS = remoteBannerURLS.map(root => {
-      return remoteHTTPSRoot + root.dir.replace(slash(finalZipPath), '')+'/'+root.base;
-    });
-    sftp.end();
-    resolve(pathObj);
+
+export default async (event, config) => {
+  // vars from UI
+  const {
+    sourcePathText,
+    outputPathText,
+    htmlMinOption,
+    jsMinOption,
+    cssMinOption,
+    optimizeImages,
+    createZips,
+    devicePixelRatio,
+    zipFileSizeLimit,
+    staticFileSizeLimit
+  } = config;
+  // generated vars
+  let timestamp = moment().format('YYYYMMDD_HHmmSS');
+  let finalRootPath = path.join(outputPathText, timestamp);
+  let finalBannerSourcePath = path.join(finalRootPath, 'source');
+  let finalZipPath = path.join(finalRootPath, 'final_zips');
+  let jobVars = {
+    timestamp,
+    finalRootPath,
+    finalBannerSourcePath,
+    finalZipPath
+  };
+  const logger = winston.createLogger({
+    level: 'info',
+    format: winston.format.simple(),
+    transports: [
+      new winston.transports.File({
+        filename: path.join(finalZipPath, 'error.log'),
+        level: 'error'
+      }),
+      new winston.transports.File({ filename: path.join(finalZipPath, 'combined.log') })
+    ]
   });
-}
-function nullPromise(...args) {
-  return Promise.resolve(...args);
-}
-tinify.key = KEYS.TINIFY;
-tinify.validate(function(err) {
-  if (err) throw err;
-  console.log('!!!! API KEY GOOD');
-});
-export default (event, config) => {
-  return new Promise(((resolve, reject) => {
-    const {
-      sourcePathText,
-      outputPathText,
-      htmlMinOption,
-      jsMinOption,
-      cssMinOption,
-      optimizeImages,
-      createZips
-    } = config;
-    copySource(sourcePathText, outputPathText)
-      .then(htmlMinOption === 'true' ? minifyHTML : nullPromise)
-      .then(jsMinOption === 'true' ? minifyJS : nullPromise)
-      .then(cssMinOption === 'true' ? minifyCSS : nullPromise)
-      .then(optimizeImages === 'true' ? tinifyImages : nullPromise)
-      .then(createZips === 'true' ? makeZips : nullPromise)
-      .then(createZips === 'true' ? copyZips : nullPromise)
-      .then(createZips === 'true' ? testZips : nullPromise)
-      .then(createZips === 'true' ? MakeScreenshots : nullPromise)
-      .then(createZips === 'true' ? cleanUp : nullPromise)
-      .then(resolve);
+  logger.add(new winston.transports.Console({
+    format: winston.format.simple()
   }));
+  const processLogging = (statusObject: Object = null, message: string = '') => {
+    if (statusObject === null) {
+      logger.info(message);
+      return;
+    }
+    if (statusObject.status === STEP_SUCCESS) {
+      event.reply(ipcEvents.MINIFICATION_STATUS_UPDATE, statusObject.message);
+      logger.info(statusObject.message);
+    }
+    if (statusObject.status === STEP_ERROR) {
+      event.reply(ipcEvents.MINIFICATION_STATUS_UPDATE, statusObject.message + ' Check Log File');
+      logger.error(statusObject.message, statusObject.data);
+    }
+  };
+  event.reply(ipcEvents.MINIFICATION_STATUS_UPDATE, 'Starting Minification');
+  let status = await copySource(sourcePathText, finalBannerSourcePath);
+  processLogging(status);
+  if (status.status === STEP_ERROR) return "!!! Process Halted Due To Error";
+  status = htmlMinOption === 'true' ? await minifyHTML(finalBannerSourcePath) : reportingFactory(STEP_SUCCESS, 'BYPASS HTML MIN');
+  processLogging(status);
+  if (status.status === STEP_ERROR) return "!!! Process Halted Due To Error";
+  status = jsMinOption === 'true' ? await minifyJS(finalBannerSourcePath) : reportingFactory(STEP_SUCCESS, 'BYPASS JS MIN');
+  processLogging(status);
+  if (status.status === STEP_ERROR) return "!!! Process Halted Due To Error";
+  status = cssMinOption === 'true' ? await minifyCSS(finalBannerSourcePath) : reportingFactory(STEP_SUCCESS, 'BYPASS CSS MIN');
+  processLogging(status);
+  if (status.status === STEP_ERROR) return "!!! Process Halted Due To Error";
+  status = optimizeImages === 'true' ? await tinifyImages(finalBannerSourcePath) : reportingFactory(STEP_SUCCESS, 'BYPASS IMAGE MIN');
+  processLogging(status);
+  if (status.status === STEP_ERROR) return "!!! Process Halted Due To Error";
+  status = createZips === 'true' ? await makeZips(finalBannerSourcePath) : reportingFactory(STEP_SUCCESS, 'BYPASS Make Zips');
+  processLogging(status);
+  if (status.status === STEP_ERROR) return "!!! Process Halted Due To Error";
+  status = createZips === 'true' ? await copyZips(finalBannerSourcePath, finalZipPath) : reportingFactory(STEP_SUCCESS, 'BYPASS Copy Zips');
+  processLogging(status);
+  if (status.status === STEP_ERROR) return "!!! Process Halted Due To Error";
+  status = createZips === 'true' ? await MakeScreenshots(finalZipPath, devicePixelRatio, staticFileSizeLimit) : reportingFactory(STEP_SUCCESS, 'BYPASS Screenshots');
+  processLogging(status);
+  if (status.status === STEP_ERROR) return "!!! Process Halted Due To Error";
+  status =  await cleanUp(finalBannerSourcePath, finalZipPath);
+  processLogging(status);
+  if (status.status === STEP_ERROR) return "!!! Process Halted Due To Error";
+  status = createZips === 'true' ? await testZips(finalZipPath, zipFileSizeLimit,staticFileSizeLimit) : reportingFactory(STEP_SUCCESS, 'BYPASS Tests');
+  processLogging(status);
+  return 'Process Successful Files are in : '+finalRootPath;
 };
+
