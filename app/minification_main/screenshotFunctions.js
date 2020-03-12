@@ -3,6 +3,7 @@ import path from 'path';
 import slash from 'slash';
 import fs from 'fs-extra';
 import eachLimit from 'async/eachLimit';
+import delay from 'delay';
 import {
   findAllBannerFolderRoots,
   getBannerDimensions,
@@ -32,10 +33,11 @@ const run = (file: object,
   const bannerURL = path.join(dir, base);
   const dimensions = getBannerDimensions(bannerURL);
 
-  shotWindow.once('ready-to-show', (e) => {
+  shotWindow.once('ready-to-show', async (e) => {
     console.log('WINDOW SHOULD BE OPEN');
-    //shotWindow.show();
-    //shotWindow.focus();
+
+    await delay (17000);
+
     shotWindow.capturePage()
       .then(img => {
         img = img.crop({

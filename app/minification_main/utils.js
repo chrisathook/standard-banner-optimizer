@@ -6,7 +6,19 @@ import cheerio from 'cheerio';
 import deleteEmpty from 'delete-empty';
 export const copySource = async (sourcePath, destPath) => {
   try {
-    fs.copySync(sourcePath, destPath);
+    fs.copySync(sourcePath, destPath, {
+      filter: (file) => {
+        const ext = path.parse(file).ext;
+        const allowed = ['.html', '.jpg', '.css', '.js', '.png', '.svg', '.json',''];
+        let isAllowed = false;
+        allowed.forEach(item => {
+          if (ext === item) {
+            isAllowed = true;
+          }
+        });
+        return isAllowed;
+      }
+    });
     //console.log('success!');
   } catch (err) {
     return reportingFactory(STEP_ERROR, 'ERROR COPYING SOURCE', err);

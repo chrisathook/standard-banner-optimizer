@@ -36,7 +36,7 @@ export const minifyHTML = async (operatingDirectory) => {
 };
 export const minifyJS = async (operatingDirectory) => {
   let run = (file, callback) => {
-    //console.log('!!!', file);
+    console.log('!!!', file);
     let data = fs.readFileSync(file, 'utf8');
     let data2 = JSMinifier.minify(data, {
       compress: {
@@ -47,7 +47,9 @@ export const minifyJS = async (operatingDirectory) => {
     fs.writeFileSync(file, data2);
     callback();
   };
-  let files = glob(path.join(operatingDirectory, '**/*.js'));
+
+  console.log('!SSS!!', operatingDirectory);
+  let files = await  glob(path.join(operatingDirectory, '**/*.js'));
   try {
     await eachLimit(files, 1, run);
   }catch (err) {
